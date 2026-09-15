@@ -77,6 +77,39 @@ step is timed and tee'd to `logs/<run-id>/`; step 1 is skipped if a checkpoint a
 exists; and it warns if a `results/*.csv` for the chosen model already exists, since
 the scripts would append to it with no header.
 
+### Torch wheel vs driver — an install-time trap
+
+`cifar100/requirements.txt` pins only `torch>=2.0.0`, so `pip install -r
+requirements.txt` fetches whatever wheel is newest. On the department server
+(RTX 2080, driver 535.309.01 = CUDA 12.2) that was `torch 2.14.0+cu130`, which
+imports fine but fails at first CUDA call with:
+
+```
+The NVIDIA driver on your system is too old (found version 12020)
+```
+
+This is silent until runtime and would otherwise be discovered part-way into a long
+job — or worse, not at all if something falls back to CPU.
+
+`--setup` now reads the CUDA version from `nvidia-smi` (the newest runtime the driver
+supports), maps it to a wheel index, and installs torch from there *before* the
+requirements file, whose `>=` constraints then leave it alone:
+
+| Driver reports | Index | Pinned |
+|---|---|---|
+| ≥ 12.8 | cu128 | unpinned |
+| ≥ 12.6 | cu126 | torch 2.7.1 / tv 0.22.1 |
+| ≥ 12.4 | cu124 | torch 2.6.0 / tv 0.21.0 |
+| ≥ 12.1 | cu121 | torch 2.5.1 / tv 0.20.1 |
+| ≥ 11.8 | cu118 | torch 2.4.1 / tv 0.19.1 |
+| none | cpu | unpinned, with a warning |
+
+Override with `--cuda cu121` etc. Setup verifies `torch.cuda.is_available()` and fails
+loudly rather than leaving a venv that only breaks later. Mapping verified against
+stubbed driver versions 11.6 through 13.0.
+
+**Working combination on the department server: torch 2.5.1+cu121, Python 3.10.**
+
 `select_model.py` is idempotent and verified to round-trip byte-identically across all
 three models. Useful side effect: run with `--check` it reports the current selection,
 and on the pristine repo it correctly returns `mixed/unknown` — `hrank_cifar100.py`
