@@ -15,3 +15,13 @@ cifar100/pg_project_output/pg_data/
 cifar100/pg_project_output/results/pruned_models/
 cifar100/pg_project_output/trained_models/
 cifar100_pg_gpu.zip
+
+# Python bytecode
+*.pyc
+__pycache__/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# scripts/run_pipeline.sh writes per-run step logs here
+logs/
