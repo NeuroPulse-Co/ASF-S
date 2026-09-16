@@ -5,6 +5,60 @@ Newest entry first.
 
 ---
 
+# 2026-09-16 — Step 1 reproduces on the department server
+
+Environment: `intellisense08-EWISPro9900G`, NVIDIA RTX 2080 (8 GB), driver 535.309.01
+(CUDA 12.2), torch 2.5.1+cu121, Python 3.10. Run via
+`./scripts/run_pipeline.sh --steps 1`, which selected conv2net and trained for 64 min.
+
+## Conv2Net / CIFAR-100 training vs the reference run
+
+| | New (RTX 2080) | `reference_results/` |
+|---|---|---|
+| Epochs run | 165 | 160 |
+| Best `val_acc` | **0.5252** @ epoch 152 | **0.5193** @ epoch 156 |
+| Final train / val acc | 0.4885 / 0.5237 | 0.4863 / 0.5171 |
+| NaNs in `train_loss` | 0 | 0 |
+| Early stop (cap 200) | yes | yes |
+
+**Verdict: reproduces.** +0.59 accuracy points is ordinary run-to-run variance from
+nondeterministic cuDNN kernel selection on different hardware. Early stopping fired at
+a similar epoch, so the run converged the same way rather than stalling or being
+truncated. `val_acc` sitting above `train_acc` is expected — dropout and augmentation
+are active during training and off at evaluation — and the gap matches the reference.
+No NaNs, so AMP behaves on Turing.
+
+Minor oddity, not a defect: epoch 1 reached 19.6% val accuracy, unusually strong for
+CIFAR-100. The curve is smooth from there to 52%, so it reads as a lucky
+initialisation.
+
+## Timing recalibrated on real hardware
+
+64 min / 165 epochs = **23.3 s per epoch**, against ~19 s on the Kaggle T4. The RTX
+2080 is *slower* here despite being the stronger card, which indicates the workload is
+**CPU-bound in the DataLoader**, not GPU-bound. Relevant because the scripts hardcode
+`num_workers=4`.
+
+Scaling the measured Kaggle step-6 cost by that ratio:
+
+| | Kaggle T4 | RTX 2080 (projected) |
+|---|---|---|
+| Per combination | ~30 min | **~37 min** |
+| 81 combinations | ~40-45 h | **~50 h** |
+
+Feasible in one tmux session with no session limit, but it is two days of GPU time.
+Two consequences:
+
+1. Decide up front whether all 81 combinations are wanted, or a coarser grid first.
+2. This strengthens the case for fixing finding #1 (`rebuild_fc`) **before** the run —
+   50 hours is a lot to spend producing a table whose `pre_acc` column cannot mean
+   what it claims.
+
+Estimate accuracy so far: step 1 was predicted at ~25 min and took 64. Projections in
+this log should be treated as order-of-magnitude until measured on this box.
+
+---
+
 # 2026-09-15 — Kaggle abandoned, moving to the department GPU server
 
 ## Why
@@ -32,7 +86,7 @@ Consequently the two-notebook split and the CSV resume logic proposed in the Kag
 run record below are **no longer needed**. They were workarounds for the session
 limit.
 
-## Repo change made for this: `results/` → `base_results/`
+## Repo change made for this: `results/` → `reference_results/`
 
 The scripts append with `header=not file_exists`
 ([`pg_pruning_cifar100.py:178`](../cifar100/pg_pruning_cifar100.py#L178)), and a fresh
@@ -42,7 +96,9 @@ on Kaggle, where the 16 completed combinations landed under the 9 pre-existing r
 `pg_conv2net_cifar100.csv`.
 
 All 17 previously committed result files were moved to
-`cifar100/pg_project_output/base_results/` (as git renames, so history follows).
+`cifar100/pg_project_output/reference_results/` (named to avoid colliding with
+`base_*` in the code, which means the *unpruned* model, and with the README's
+"baselines", which means SVD/Sliming/SNOWS).
 `config.py` recreates an empty `results/` on import, so new runs write cleanly with a
 proper header. Verified: new `results/*.csv` are **not** gitignored and so remain
 committable, while `results/pruned_models/` is still ignored by `.gitignore:15`.
