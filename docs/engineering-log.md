@@ -5,7 +5,103 @@ Newest entry first.
 
 ---
 
-# 2026-09-16 — Step 1 reproduces on the department server
+# 2026-09-18 — Finding #3 confirmed empirically: PG1 has collapsed
+
+Steps 2 and 4 completed on the department server after the storage problem was
+addressed server-side (step 2 took 13 min against the 45-70 min estimate; the working
+configuration was not recorded and should be, since dump size now gates VGG16).
+
+Step 4 processed all 200 (class, split) pairs in **2.7 seconds** — itself a symptom,
+since it reads one file per pair.
+
+The resulting `pg_data/` was copied to a laptop and inspected. **Finding #3 moves from
+predicted to confirmed**, and the reality is worse than the theory suggested.
+
+## PG1 vectors are two-valued
+
+Each vector has 100 entries (Conv2Net's `fc` is the 100-class output layer) and takes
+**1-2 distinct values**: mean 1.96 across the `correct` set, 1.74 across `incorrect`.
+
+```
+class 1 correct    -1.003850e-02  x99        class 1 incorrect  -1.003891e-02  x99
+                    9.949943e-01  x1                             9.949939e-01  x1
+```
+
+A 99/1 split — one unit separated from the other 99. This is precisely the two-block
+affinity matrix predicted for S=1: what is being called a principal gradient is the
+sign partition of a single image.
+
+Two aggravating details the theory did not predict:
+
+- **26 of 100 `incorrect` vectors are constant** (a single value across all 100 units).
+  Those contribute nothing whatsoever to the Eq. 9 contrast.
+- **`correct` and `incorrect` are near-identical for some classes.** In class 1 above
+  they agree to six significant figures, so `Δg = g_corr − g_incorr ≈ 4e-7` — numerical
+  noise, for the quantity the whole method is built on.
+
+## The contrast matrix has no dominant direction
+
+Stacking to ΔG (100×100, Eq. 10) and applying Eq. 11's PCA:
+
+| | PC1 | PC2 | PC3 | PC4 | PC5 | PC6 | PC7 | PC8 |
+|---|---|---|---|---|---|---|---|---|
+| explained variance | 0.050 | 0.046 | 0.040 | 0.039 | 0.037 | 0.034 | 0.033 | 0.032 |
+
+Nearly flat — a factor of 1.6 between first and eighth, against 0.01 for a perfectly
+uniform spectrum. **PCA(8) captures 30.9% of variance; 75 components are needed for
+99%.** ΔG has rank 99 of 100.
+
+Eq. 11 claims to extract "the dominant, class-shared axes". There is no dominant axis
+present to extract, so the PCA components fed into Eq. 12 are close to arbitrary.
+
+For context the paper's §C.3 reports 4 components accounting for ~90% of variation.
+That is **not** a like-for-like contradiction — it describes CIFAR-10 with a 10-unit
+output layer, where 4 of 10 components reaching 90% is unremarkable — but the CIFAR-100
+extension is nowhere near that regime, and the discrepancy should be explained rather
+than inherited.
+
+## What this does and does not establish
+
+**Established:** the PG1 vectors are degenerate, and the PCA step finds no concentrated
+direction from which to build PGI.
+
+**Not established:** that ASF-S does not work. A near-arbitrary importance score can
+still outperform random pruning by accident, and the committed reference results do
+show 50.03% recovery at light pruning. Whether the method survives a correctly computed
+PG1 is exactly what the S=50 re-run answers.
+
+**A null model was tried and does not support a stronger claim.** Random two-valued
+rows of the same shape produce *more* spectral concentration than the real ΔG
+(PC1 ≈ 0.50 vs 0.05), because random row means create a shared offset direction. So
+"indistinguishable from noise" is not a claim the data supports; the narrower claim
+above is.
+
+## Reproducing this
+
+From `pg_data/` alone, no GPU required:
+
+```python
+import numpy as np, glob, os
+base = 'cifar100/pg_project_output/pg_data/conv2net'
+def load(split):
+    fs = sorted(glob.glob(f'{base}/{split}/pg1_data/*_fc_pg1.npy'),
+                key=lambda p: int(os.path.basename(p).split('_')[0]))
+    return np.stack([np.load(f) for f in fs])
+
+C, I = load('correct'), load('incorrect')
+print([len(np.unique(np.round(r, 6))) for r in C][:10])   # distinct values per class
+print(sum(len(np.unique(np.round(r, 6))) == 1 for r in I))  # constant vectors
+
+dG = C - I
+X  = dG - dG.mean(0)
+s  = np.linalg.svd(X, compute_uv=False)
+ev = s**2 / (s**2).sum()
+print(np.round(ev[:8], 4), ev[:8].sum())
+```
+
+---
+
+# 2026-09-16 — Step 1 reproduces; step 2 blocked by disk
 
 Environment: `intellisense08-EWISPro9900G`, NVIDIA RTX 2080 (8 GB), driver 535.309.01
 (CUDA 12.2), torch 2.5.1+cu121, Python 3.10. Run via
@@ -56,6 +152,66 @@ Two consequences:
 
 Estimate accuracy so far: step 1 was predicted at ~25 min and took 64. Projections in
 this log should be treated as order-of-magnitude until measured on this box.
+
+## Step 2 — failed, `/home` full
+
+```
+RuntimeError: [enforce fail at inline_container.cc:778] .
+  PytorchStreamWriter failed writing file data/0: file write failed
+RuntimeError: [enforce fail at inline_container.cc:603] . unexpected pos 704 vs 598
+```
+
+Died at class 66 of 100 during `torch.save`. The second error is the truncated write's
+end-of-file record — i.e. a corrupt `.pt` was left behind. Step 2 has no resume, so a
+re-run restarts at class 0 and will not necessarily overwrite it; the partial dump must
+be deleted rather than reused, or a later step hits it as an unpickling error.
+
+```
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/sdb1       1.6T  1.5T     0 100% /home
+```
+
+`/home` is a **shared 1.6 TB volume at 100%, 0 bytes available** — so this blocked every
+user on the box, not just this run. No quota is configured; of the 1.5 TB in use only
+26 GB was ours. Deleted to release it.
+
+### The activation dump is far larger than estimated
+
+| | Predicted | Actual |
+|---|---|---|
+| Per file | ~460 KB | **~2 MB** |
+| Full conv2net dump | 9.4 GB | **~39 GB** (26 GB at class 66/100) |
+
+The ~4× gap against the per-layer arithmetic (conv1 32·32·32 + conv2 64·32·32 +
+pool 64·16·16 + fc 100 = 114,788 floats ≈ 460 KB) is **unexplained and worth
+investigating**. A plausible culprit is `torch.save` serialising a whole shared storage
+rather than the sliced view in `{n: a[i].cpu() for n, a in acts.items()}`
+([`activation_ext_cifar100.py:66`](../cifar100/activation_ext_cifar100.py#L66)) — each
+`a` is a full `(batch, C, H, W)` tensor and `a[i]` is a view into it. If that is the
+cause it is a real and cheaply fixed 4× waste.
+
+Consequence: the ~25 GB VGG16 figure in the 2026-09-14 audit is also unreliable and
+likely nearer 100 GB. Both need measuring, not recalculating.
+
+### Almost all of the dump is unused on the path being run
+
+With step 3 skipped, the only consumer of these files is `pg_ext_cifar100.py`, which
+reads **one layer** (`PG_FC_LAYER["conv2net"] = "fc"`, 100 floats) and **one file per
+(class, split)** — the latter being finding #3, the `break` on first match.
+
+So `conv1`, `conv2`, `pool`, and 199 of every 200 files exist solely to feed step 3's
+affinity matrices. Saving only `fc` would take the dump from ~39 GB to roughly
+**250 MB**. Worth adding as an opt-in (`PG_SAVE_LAYERS`) defaulting to current
+behaviour, so step 3 remains possible later on a machine with room.
+
+### Preflight defect
+
+`run_pipeline.sh` *warns* below 15 GB free but does not abort, and 15 GB was far too low
+regardless. It should abort, and require ~45 GB for conv2net — a measured figure, not a
+calculated one.
+
+**Status: blocked pending a server-side storage decision** — another filesystem, or
+shrinking what step 2 writes.
 
 ---
 
@@ -196,7 +352,7 @@ a GPU and is not an artefact of the Kaggle environment.
 |---|---|---|---|
 | 1 | `rebuild_fc` writes weights to the wrong columns | every `pre_acc`; the "no retraining" claim | **Verified** |
 | 2 | Pruned param counts exclude conv layers | every `param_red_pct` / sparsity figure | **Verified** |
-| 3 | PG1 is built from a single sample | every PGI score and pruning result | **Verified** |
+| 3 | PG1 is built from a single sample | every PGI score and pruning result | **Verified + empirically confirmed 2026-09-18** |
 | 4 | Eq. 12 projection truncated to the shortest vector | every PGI score | **Verified** |
 | 5 | PG threshold is not a sparsity ratio | PG-vs-baseline comparisons | **Verified** |
 | 6 | Legacy importance uses `\|mean(s)\|`, Eq. 13 says `mean(\|s\|)` | CIFAR-10 results only | **Verified** |
@@ -392,6 +548,10 @@ np.unique(np.round(np.load('pg_data/conv2net/correct/pg1_data/0_fc_pg1.npy'), 6)
 ```
 
 A 100-element PG1 vector returning two or three distinct values confirms the collapse.
+
+> **Run on 2026-09-18: confirmed.** Every vector is 1-2 valued, 26/100 `incorrect`
+> vectors are constant, and PCA(8) over the contrast matrix captures only 30.9% of
+> variance. See the 2026-09-18 entry.
 
 ---
 
