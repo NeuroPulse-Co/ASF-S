@@ -11,7 +11,10 @@ _archive/
 cifar100/data/
 cifar100/pg_project_output/activations/
 cifar100/pg_project_output/affinity_matrices/
-cifar100/pg_project_output/pg_data/
+# Trailing /* (not /) so git still descends into the directory and the
+# negation below can take effect; an excluded directory is never entered.
+cifar100/pg_project_output/pg_data/*
+!cifar100/pg_project_output/pg_data/pg1_summary.csv
 cifar100/pg_project_output/results/pruned_models/
 cifar100/pg_project_output/trained_models/
 cifar100_pg_gpu.zip
