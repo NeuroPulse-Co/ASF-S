@@ -3,6 +3,41 @@
 Running record of code-level findings, run records, and cost estimates.
 Newest entry first.
 
+> **Start with [`cifar100-status.md`](cifar100-status.md)**: it is the topic-ordered overview of
+> everything below. **Paths moved on 2026-09-28:** `reference_results/` is now `original_fork/`, and
+> run 01's outputs are now under `runs/run01_2026-09-16_rtx2080_S1/`. Path references below have been updated;
+> the historical narrative has not.
+
+---
+
+# 2026-09-28 — Minimal fixes for run 02: `rebuild_fc`, param counts, S = 50
+
+Findings #1–#3 fixed in code. Everything else is intentionally left alone, so run 02 isolates
+their effect. The full list and rationale are in
+[`cifar100-status.md`](cifar100-status.md#code-changes-for-run-02).
+
+- **#1:** `rebuild_fc(model, fc_attr, keep_idx)` now copies the kept channels' FC columns; every
+  caller passes the last conv's kept `idx`. It raises on a shape mismatch instead of silently
+  mis-wiring.
+- **#2:** `count_params()` replaces `ptflops`' param count (which skips frozen params) for both
+  the base and pruned models in PG, HRank and `benchmark_pruning_common.py`.
+- **#3:** `pg_ext_cifar100.py` stacks up to `PG_SAMPLES = 50` samples per (class, split), with a seeded
+  shuffle. `pg1_summary.csv` gains `n_samples`, `pg1_distinct`, `w_offdiag_mean` and `w_frac_gt_0.01`.
+- **Also:** PG1 sign alignment before Eq. 9 (an implementation choice, stated as such), and
+  `inputs[i].clone()` in activation extraction (dump size).
+
+**Verified on CPU with synthetic inputs:**
+- With random channel subsets pruned, the pruned Conv2Net, Conv6Net and VGG16 match the unpruned
+  model with those channels silenced (max |Δ| ≈ 1e-7). The pre-fix code fails the same check.
+- `count_params` is correct with layers frozen.
+- `pg_ext` gives 448–512 distinct PG1 values at S = 50.
+
+**Not yet verified on real data.** That needs steps 2 and 4 on the server.
+
+Also noted in the 2026-09-28 re-check, but not in this log before: the VGG16 baseline in
+`vgg16_metrics.csv` is 58.17% best / 55.99% final. The "57.14%" under finding #8 below does not
+match the file.
+
 ---
 
 # 2026-09-18 — Finding #3 confirmed empirically: PG1 has collapsed
@@ -82,7 +117,7 @@ From `pg_data/` alone, no GPU required:
 
 ```python
 import numpy as np, glob, os
-base = 'cifar100/pg_project_output/pg_data/conv2net'
+base = 'cifar100/pg_project_output/runs/run01_2026-09-16_rtx2080_S1/pg_data/conv2net'
 def load(split):
     fs = sorted(glob.glob(f'{base}/{split}/pg1_data/*_fc_pg1.npy'),
                 key=lambda p: int(os.path.basename(p).split('_')[0]))
@@ -109,7 +144,7 @@ Environment: `intellisense08-EWISPro9900G`, NVIDIA RTX 2080 (8 GB), driver 535.3
 
 ## Conv2Net / CIFAR-100 training vs the reference run
 
-| | New (RTX 2080) | `reference_results/` |
+| | New (RTX 2080) | `original_fork/` |
 |---|---|---|
 | Epochs run | 165 | 160 |
 | Best `val_acc` | **0.5252** @ epoch 152 | **0.5193** @ epoch 156 |
@@ -252,7 +287,7 @@ on Kaggle, where the 16 completed combinations landed under the 9 pre-existing r
 `pg_conv2net_cifar100.csv`.
 
 All 17 previously committed result files were moved to
-`cifar100/pg_project_output/reference_results/` (named to avoid colliding with
+`cifar100/pg_project_output/reference_results/` (since renamed to `original_fork/`; named to avoid colliding with
 `base_*` in the code, which means the *unpruned* model, and with the README's
 "baselines", which means SVD/Sliming/SNOWS).
 `config.py` recreates an empty `results/` on import, so new runs write cleanly with a
@@ -544,7 +579,7 @@ samples, so Figures 3, 13 and 14 follow Eq. 1-3 as written. The split is Figure 
 ### Cheapest check
 
 ```python
-np.unique(np.round(np.load('pg_data/conv2net/correct/pg1_data/0_fc_pg1.npy'), 6))
+np.unique(np.round(np.load('cifar100/pg_project_output/runs/run01_2026-09-16_rtx2080_S1/pg_data/conv2net/correct/pg1_data/0_fc_pg1.npy'), 6))
 ```
 
 A 100-element PG1 vector returning two or three distinct values confirms the collapse.

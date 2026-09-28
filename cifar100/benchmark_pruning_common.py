@@ -22,8 +22,9 @@ from torchvision import datasets, transforms
 from config import (CIFAR100_MEAN, CIFAR100_STD, DATA_DIR, NUM_CLASSES,
                     RESULTS_DIR, TRAINED_MODELS_DIR)
 from models import Conv2Net, Conv6Net, VGG16CIFAR
-from pruning_utils import (compute_ece, eval_acc, fine_tune_fc, prune_bn,
-                           prune_conv, rebuild_fc, update_next_conv_in)
+from pruning_utils import (compute_ece, count_params, eval_acc, fine_tune_fc,
+                           prune_bn, prune_conv, rebuild_fc,
+                           update_next_conv_in)
 
 SEED = 42
 BATCH = 128
@@ -154,7 +155,7 @@ def apply_structured_pruning(model, base_model, conv_seq, scores_by_layer,
             next_conv = update_next_conv_in(idx, getattr(model, next_a),
                                             device=str(device))
             setattr(model, next_a, next_conv)
-    return kept
+    return kept, idx  # idx = kept channels of the last conv, for rebuild_fc
 
 
 def run_method(method_name, score_fn: ScoreFn, args=None):
@@ -174,9 +175,10 @@ def run_method(method_name, score_fn: ScoreFn, args=None):
         if base is None:
             continue
 
-        base_macs, base_params = get_model_complexity_info(
+        base_macs, _ = get_model_complexity_info(
             base, (3, 32, 32), as_strings=False, verbose=False)
         base_flops = 2 * base_macs
+        base_params = count_params(base)
         conv_seq = SEQ[model_name]
 
         print(f"\n{'=' * 55}\n{method_name.upper()} {model_name.upper()} CIFAR-100\n{'=' * 55}",
@@ -195,9 +197,9 @@ def run_method(method_name, score_fn: ScoreFn, args=None):
         for ratio in args.ratios:
             print(f"\nratio={ratio:.2f}: pruning layers...", flush=True)
             m = copy.deepcopy(base).to(device)
-            kept = apply_structured_pruning(m, base, conv_seq, scores_by_layer,
-                                            ratio, device)
-            m = rebuild_fc(m, first_fc, device=str(device))
+            kept, last_idx = apply_structured_pruning(
+                m, base, conv_seq, scores_by_layer, ratio, device)
+            m = rebuild_fc(m, first_fc, last_idx, device=str(device))
 
             print(f"ratio={ratio:.2f}: kept={list(kept.values())}; evaluating...",
                   flush=True)
@@ -211,8 +213,9 @@ def run_method(method_name, score_fn: ScoreFn, args=None):
 
             print(f"ratio={ratio:.2f}: measuring FLOPs/ECE and saving...",
                   flush=True)
-            macs, params = get_model_complexity_info(
+            macs, _ = get_model_complexity_info(
                 m, (3, 32, 32), as_strings=False, verbose=False)
+            params = count_params(m)
             flops = 2 * macs
             ece = compute_ece(m, val_loader, device=str(device))
             flops_red = 100 * (base_flops - flops) / base_flops

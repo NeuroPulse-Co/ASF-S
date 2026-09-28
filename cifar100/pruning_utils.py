@@ -61,8 +61,16 @@ def update_next_conv_in(keep_in, conv, device="cpu"):
     return new
 
 
-def rebuild_fc(model, fc_attr, in_shape=(1, 3, 32, 32), device="cpu"):
-    """Probe the FC input size with a GPU dummy forward pass, then reinitialise."""
+def rebuild_fc(model, fc_attr, keep_idx, in_shape=(1, 3, 32, 32), device="cpu"):
+    """
+    Shrink the first FC layer to match the pruned last conv.
+
+    keep_idx : kept output-channel indices of the last conv (as returned by
+               prune_conv). The flatten is channel-major, so old column
+               c*H*W + p belongs to channel c; only the kept channels' columns
+               are copied, which keeps the network function-preserving up to
+               the removed filters.
+    """
     model.eval()
     size = {}
 
@@ -80,13 +88,26 @@ def rebuild_fc(model, fc_attr, in_shape=(1, 3, 32, 32), device="cpu"):
     if "n" not in size:
         raise RuntimeError(f"Could not determine input size for '{fc_attr}'")
 
+    keep_idx = np.asarray(keep_idx, dtype=int)
     old = getattr(model, fc_attr)
-    new = nn.Linear(size["n"], old.out_features).to(device)
-    m   = min(old.in_features, size["n"])
-    new.weight.data[:, :m] = old.weight.data[:, :m]
+    n   = size["n"]
+    hw  = n // len(keep_idx)
+    if n != len(keep_idx) * hw or (keep_idx.max() + 1) * hw > old.in_features:
+        raise RuntimeError(f"'{fc_attr}': {n} inputs do not match "
+                           f"{len(keep_idx)} kept channels of the last conv")
+
+    cols = torch.as_tensor((keep_idx[:, None] * hw + np.arange(hw)).ravel(),
+                           device=old.weight.device)
+    new = nn.Linear(n, old.out_features).to(device)
+    new.weight.data = old.weight.data[:, cols].clone().to(device)
     new.bias.data = old.bias.data.clone()
     setattr(model, fc_attr, new)
     return model
+
+
+def count_params(model):
+    """Total parameter count, independent of requires_grad (ptflops skips frozen params)."""
+    return sum(p.numel() for p in model.parameters())
 
 
 # ── Evaluation ────────────────────────────────────────────────
