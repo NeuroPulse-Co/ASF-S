@@ -10,6 +10,20 @@ Newest entry first.
 
 ---
 
+# 2026-09-29 — Run 03: baselines on the fixed code
+
+Record: [`runs/run03_2026-09-29_baselines/README.md`](../cifar100/pg_project_output/runs/run03_2026-09-29_baselines/README.md).
+First run archived with `scripts/archive_run.sh` (added today).
+
+- SVD, Sliming and SNOWS at 0.7, and HRank at 0.2–0.9: same checkpoint as run 02, fixed code, 9 rows in 112 min.
+- The fork's baseline `val_acc` reproduces within −1.9 to +0.9 pts, which confirms that `rebuild_fc` barely
+  matters once the FC is retrained.
+- Pareto comparison with PG's 81 rows: **PG is better only at light pruning** (it beats HRank 0.2 and 0.3).
+  At ≥ 50%, Sliming, SVD and HRank 0.5–0.8 dominate points on PG's front. Sliming at 10/19 (70.5% params,
+  87.8% FLOPs) scores 37.02 against PG 10/20 (69.0%, 87.2%) at 32.00.
+
+---
+
 # 2026-09-29 — Run 02 results: fixes work, ASF-S does not reproduce on CIFAR-100
 
 Full record: [`runs/run02_2026-09-28_rtx2080_S50_fixes/README.md`](../cifar100/pg_project_output/runs/run02_2026-09-28_rtx2080_S50_fixes/README.md).

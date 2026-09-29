@@ -4,7 +4,7 @@ Where the CIFAR-100 replication stands, what is wrong with the pipeline, and wha
 The doc is ordered by topic. The dated evidence behind each claim is in
 [`engineering-log.md`](engineering-log.md).
 
-Last verified against the code and data: **2026-09-29** (run 02 results).
+Last verified against the code and data: **2026-09-29** (run 02 and run 03 results).
 
 ---
 
@@ -17,6 +17,10 @@ Last verified against the code and data: **2026-09-29** (run 02 results).
   Conv2Net. At 68.7% sparsity, FC-only fine-tuning reaches 40.46% (−12.1 pts). PGI picks filters only
   slightly better than random and worse than plain L1-norm, both before and after fine-tuning.
   → [run 02 README](../cifar100/pg_project_output/runs/run02_2026-09-28_rtx2080_S50_fixes/README.md)
+- **Baselines on the fixed code (run 03):** ASF-S is competitive at light pruning (≤ ~30%; it matches HRank),
+  but worse at ≥ 50%. At ~70%, Sliming reaches 37.0% against PG's 32.0% at slightly higher compression.
+  The fork's baseline numbers held within 2 points.
+  → [run 03 README](../cifar100/pg_project_output/runs/run03_2026-09-29_baselines/README.md)
 - **Most likely cause:** Eq. 12 as implemented (#4/#4b) reduces each filter's score to an arbitrary
   projection of its weights, so the (now meaningful) PG1 structure never reaches the pruning decision.
 - **Top blocker, the "S problem":** PG1 is computed from **one image** per (class, split), not from
@@ -41,6 +45,7 @@ All under `cifar100/pg_project_output/`:
 | [`original_fork/`](../cifar100/pg_project_output/original_fork/README.md) | The fork's CSVs at commit `6e8b82a`, i.e. what we are reproducing | read-only, never write here |
 | [`runs/run01_2026-09-16_rtx2080_S1/`](../cifar100/pg_project_output/runs/run01_2026-09-16_rtx2080_S1/README.md) | Our run 01: unmodified code, stopped after step 4 | archived evidence, not results |
 | [`runs/run02_2026-09-28_rtx2080_S50_fixes/`](../cifar100/pg_project_output/runs/run02_2026-09-28_rtx2080_S50_fixes/README.md) | Our run 02: fixes #1–#3, steps 2, 4, 6 complete (81 rows) | archived; the first valid PG results |
+| [`runs/run03_2026-09-29_baselines/`](../cifar100/pg_project_output/runs/run03_2026-09-29_baselines/README.md) | Our run 03: SVD, Sliming, SNOWS (0.7) and HRank (0.2–0.9) on the fixed code, same checkpoint | archived |
 | `results/`, `pg_data/`, `activations/`, `affinity_matrices/` | **Live slot.** The scripts write here (`config.py`). On the server these still hold run 02's outputs; clear them before run 03 | — |
 | `trained_models/` | Live checkpoint. It holds run 01's `conv2net_best.pth` so run 02 skips training | gitignored |
 
@@ -294,9 +299,9 @@ pruning combination, about 50 h for the 81-combination Conv2Net grid, ~39 GB act
 Run 02 finished steps 1–3 of the old list (the fixes) and answered the S / σ question: W is well
 connected at σ = 0.1. What remains:
 
-1. **Re-run the baselines on the fixed code** (HRank, SVD, Sliming, SNOWS, plus L1 and random at PG's
-   kept counts, with FC fine-tuning). The fork's rows used the old checkpoint and the old `rebuild_fc`;
-   re-running them makes the "PG is worse than L1/Sliming" comparison airtight. Cost: about 35 min per row.
+1. ~~**Re-run the baselines on the fixed code**~~ done in run 03: PG loses at ≥ 50% sparsity. Still
+   open: L1 and random at PG's exact kept counts **with** FC fine-tuning (only checked before
+   fine-tuning so far). This needs a small addition to `benchmark_pruning_common.py`.
 2. **Take Eq. 12 (#4/#4b) to the paper authors.** It is the most likely reason PGI ≈ random. Without a
    defined mapping from the class-indexed `u_k` to each filter, the method cannot use the PG1 structure
    it computes. Any redefinition is a change to the method, not a bug fix, so it needs their agreement.
