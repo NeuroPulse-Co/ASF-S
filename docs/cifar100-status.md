@@ -44,9 +44,18 @@ All under `cifar100/pg_project_output/`:
 | `results/`, `pg_data/`, `activations/`, `affinity_matrices/` | **Live slot.** The scripts write here (`config.py`). On the server these still hold run 02's outputs; clear them before run 03 | — |
 | `trained_models/` | Live checkpoint. It holds run 01's `conv2net_best.pth` so run 02 skips training | gitignored |
 
-When run 02 finishes, move its outputs to `runs/run02_<date>_<what-changed>/` with a README in the
-same format as run 01. Tidying the code-level layout (for example, `config.py` writing straight into
-a run folder) is deferred until a run succeeds.
+**After every run, archive it before starting the next one:**
+
+```bash
+./scripts/archive_run.sh runNN_<date>_<what-changed>      # e.g. run03_2026-09-29_baselines
+```
+
+This moves the live `results/`, `pg_data/` and step logs into `runs/NAME/`, writes `RUN_INFO.md`
+(host, commit, GPU, file list), creates a README stub for the analysis, and leaves the live folders
+empty. `trained_models/` is never touched. Archive and commit on the machine that ran the pipeline,
+then pull on the other one. If `runs/NAME/` already came in through git, files identical to it are
+dropped and a differing file aborts the archive. `--dry-run` shows what would happen;
+`--drop-activations` also frees `activations/`.
 
 ---
 

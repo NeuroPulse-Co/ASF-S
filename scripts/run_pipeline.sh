@@ -202,7 +202,7 @@ for f in "$CIFAR"/pg_project_output/results/*"$MODEL"*.csv; do
   [[ -e "$f" ]] || continue
   warn "$(basename "$f") already exists. The scripts append with no header
          between runs, so new rows will land under the old ones.
-         Move it aside first if you want a clean file."
+         Archive the previous run first:  ./scripts/archive_run.sh runNN_<date>_<what>"
 done
 
 # ── run ───────────────────────────────────────────────────────
@@ -259,6 +259,10 @@ done
 say "Done. Results:"
 ls -la "$CIFAR/pg_project_output/results/" || true
 cat <<EOF
+
+Archive this run before the next one (moves results/ and pg_data/ into runs/):
+
+  ./scripts/archive_run.sh runNN_<date>_<what-changed>
 
 Pull results back (excluding the ~9.4G of activations):
 
