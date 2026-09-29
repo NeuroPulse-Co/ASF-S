@@ -10,6 +10,30 @@ Newest entry first.
 
 ---
 
+# 2026-09-29 — Run 02 results: fixes work, ASF-S does not reproduce on CIFAR-100
+
+Full record: [`runs/run02_2026-09-28_rtx2080_S50_fixes/README.md`](../cifar100/pg_project_output/runs/run02_2026-09-28_rtx2080_S50_fixes/README.md).
+
+- **Steps 2, 4 and 6 completed on the server** (step 6: 81 combinations in 1024 min, not the projected ~50 h).
+  The dump is now 8.8 GB at 474 KB per file. That confirms finding #13's mechanism: ≈460 KB of
+  activations plus the 12 KB input.
+- **PG1 is healthy:** 0 constant vectors (was 26), PCA PC1 0.388 (was 0.050), and W well connected
+  at σ = 0.1.
+- **`rebuild_fc` checked on the real checkpoint:** 52.36% with 0 filters pruned, the same as unpruned.
+  Randomly dropping (1, 2) filters gives 48.03%.
+- **Best FC-only results:** 51.12% at 11% sparsity, **40.46% at 68.7% (−12.1 pts)**. That is within about 0–2
+  pts of the fork's results at the same sparsity, so the fixes did not change final accuracy.
+- **PG vs random vs L1 at identical kept counts** (no fine-tuning, 8 rows, 10 random draws each): PG averages
+  only +1.8 pts over random, and 30 of 80 draws matched or beat it. L1-norm beats PG in 7 of 8 rows. After
+  fine-tuning, the fork's Sliming, SVD and SNOWS at 10/19 kept (36.2, 35.9, 33.7) all beat PG at 10/20 (32.0).
+- **Noise floor:** combinations with identical kept counts differ by 0.29 on average and 0.73 at most in `val_acc`.
+
+Interpretation: PGI is not selecting informative filters. The most likely cause is Eq. 12 (#4/#4b), which
+the user decided to leave unchanged for this run. Next: re-run the baselines on the fixed code, and raise
+Eq. 12 with the authors.
+
+---
+
 # 2026-09-28 — Minimal fixes for run 02: `rebuild_fc`, param counts, S = 50
 
 Findings #1–#3 fixed in code. Everything else is intentionally left alone, so run 02 isolates

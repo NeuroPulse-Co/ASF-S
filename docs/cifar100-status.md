@@ -4,7 +4,7 @@ Where the CIFAR-100 replication stands, what is wrong with the pipeline, and wha
 The doc is ordered by topic. The dated evidence behind each claim is in
 [`engineering-log.md`](engineering-log.md).
 
-Last verified against the code and data: **2026-09-28**.
+Last verified against the code and data: **2026-09-29** (run 02 results).
 
 ---
 
@@ -12,8 +12,13 @@ Last verified against the code and data: **2026-09-28**.
 
 - **Goal:** reproduce the paper's ASF-S pruning results on CIFAR-100 (Conv2Net first, then
   Conv6Net and VGG16) starting from the fork's code.
-- **Status:** run 01 trained Conv2Net successfully (52.52%, fork 51.93%) and produced PG1 data.
-  Pruning (step 6) has **not** been run, because the PG1 data it depends on is degenerate.
+- **Status (2026-09-29):** run 02 finished, with fixes #1–#3 and all 81 τ combinations. **Headline:** the
+  fixes work (`pre_acc` is real, PG1 is non-degenerate), but ASF-S does **not** reproduce on CIFAR-100
+  Conv2Net. At 68.7% sparsity, FC-only fine-tuning reaches 40.46% (−12.1 pts). PGI picks filters only
+  slightly better than random and worse than plain L1-norm, both before and after fine-tuning.
+  → [run 02 README](../cifar100/pg_project_output/runs/run02_2026-09-28_rtx2080_S50_fixes/README.md)
+- **Most likely cause:** Eq. 12 as implemented (#4/#4b) reduces each filter's score to an arbitrary
+  projection of its weights, so the (now meaningful) PG1 structure never reaches the pruning decision.
 - **Top blocker, the "S problem":** PG1 is computed from **one image** per (class, split), not from
   S samples as the paper defines. With S = 1 the maths collapses: every PG1 vector is a two-valued
   sign pattern that says, in effect, "which logits were positive". → [The S problem](#the-s-problem)
@@ -35,7 +40,8 @@ All under `cifar100/pg_project_output/`:
 |---|---|---|
 | [`original_fork/`](../cifar100/pg_project_output/original_fork/README.md) | The fork's CSVs at commit `6e8b82a`, i.e. what we are reproducing | read-only, never write here |
 | [`runs/run01_2026-09-16_rtx2080_S1/`](../cifar100/pg_project_output/runs/run01_2026-09-16_rtx2080_S1/README.md) | Our run 01: unmodified code, stopped after step 4 | archived evidence, not results |
-| `results/`, `pg_data/`, `activations/`, `affinity_matrices/` | **Live slot for run 02.** The scripts write here (`config.py`) | empty, ready |
+| [`runs/run02_2026-09-28_rtx2080_S50_fixes/`](../cifar100/pg_project_output/runs/run02_2026-09-28_rtx2080_S50_fixes/README.md) | Our run 02: fixes #1–#3, steps 2, 4, 6 complete (81 rows) | archived; the first valid PG results |
+| `results/`, `pg_data/`, `activations/`, `affinity_matrices/` | **Live slot.** The scripts write here (`config.py`). On the server these still hold run 02's outputs; clear them before run 03 | — |
 | `trained_models/` | Live checkpoint. It holds run 01's `conv2net_best.pth` so run 02 skips training | gitignored |
 
 When run 02 finishes, move its outputs to `runs/run02_<date>_<what-changed>/` with a README in the
@@ -220,7 +226,7 @@ print(ev[:8].round(4), ev[:8].sum())                           # -> 0.309
 These need checking **on real activations** with S = 50 before running the grid. The numbers
 below come from synthetic data.
 
-1. **σ = 0.1 may leave W almost empty.** `exp(−(1−cos)²/0.02)` is only non-negligible when
+1. **σ = 0.1 may leave W almost empty.** *Resolved by run 02: on real logits 87–88% of the off-diagonal W entries exceed 0.01 (the minimum across classes is 61%), so this risk did not occur.* The original concern: `exp(−(1−cos)²/0.02)` is only non-negligible when
    cos ≳ 0.7. For weakly correlated units (cos ≈ 0) it gives ≈ 3e-6. In a synthetic S = 50 test, only
    **0.02%** of off-diagonal W entries exceeded 0.01. A nearly disconnected graph gives a PG1 that
    isolates one unit, which is another degenerate result. Logits of same-class images may well be more
@@ -274,21 +280,20 @@ pruning combination, about 50 h for the 81-combination Conv2Net grid, ~39 GB act
 
 ---
 
-## Next steps for run 02
+## Next steps (after run 02)
 
-In order. Each one changes what the next one's numbers mean.
+Run 02 finished steps 1–3 of the old list (the fixes) and answered the S / σ question: W is well
+connected at σ = 0.1. What remains:
 
-1. ~~**Fix `rebuild_fc` (#1)**~~ done. Confirm `pre_acc` is now well above chance at light pruning.
-2. ~~**Fix param counting (#2)**~~ done.
-3. ~~**Fix S (#3)**~~ done in code. On the server, re-run steps 2 and 4, then:
-   - re-run the reproduction snippet: PG1 should have many distinct values and ΔG's spectrum should concentrate
-   - **inspect W's off-diagonal distribution** and tune σ if it is empty ([risk 1](#risks-that-remain-after-fixing-s))
-4. **Decide what Eq. 12 should mean (#4, #4b)** before trusting PGI. This is a method question for the paper
-   authors, not a code fix.
-5. **Match on achieved sparsity (#5)** for every PG-vs-baseline comparison.
-6. **Coarse grid first** (for example 5×5 from {0.1, 0.3, 0.5, 0.7, 0.9}, about 15 h), then the full 81 if it is worthwhile.
-7. Optional: save only the layers PG needs (the `.clone()` fix for #13 is done) before VGG16.
-8. Archive into `runs/run02_<date>_<fixes>/` with a README; append a dated entry to the log.
+1. **Re-run the baselines on the fixed code** (HRank, SVD, Sliming, SNOWS, plus L1 and random at PG's
+   kept counts, with FC fine-tuning). The fork's rows used the old checkpoint and the old `rebuild_fc`;
+   re-running them makes the "PG is worse than L1/Sliming" comparison airtight. Cost: about 35 min per row.
+2. **Take Eq. 12 (#4/#4b) to the paper authors.** It is the most likely reason PGI ≈ random. Without a
+   defined mapping from the class-indexed `u_k` to each filter, the method cannot use the PG1 structure
+   it computes. Any redefinition is a change to the method, not a bug fix, so it needs their agreement.
+3. **Report on FLOPs as well as parameters.** On Conv2Net, parameter % depends almost entirely on conv2
+   (the FC holds 98.8% of the parameters), so conv1 pruning shows up only in FLOPs.
+4. Only then: Conv6Net / VGG16 (for VGG16, fix #8's LR schedule before retraining).
 
 ## Paper vs code: raise these with the authors before the camera-ready
 
