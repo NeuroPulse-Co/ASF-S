@@ -19,9 +19,14 @@ cifar100/pg_project_output/results/pruned_models/
 cifar100/pg_project_output/trained_models/
 cifar100_pg_gpu.zip
 
+# mnist/: intermediate artefacts are regenerated in minutes by extract/pg/importance.
+# (mnist/data/ is already covered by the data/ rule above; results/ stays committable.)
+mnist/outputs/
+
 # Python bytecode
 *.pyc
 __pycache__/
+__pycache__
 
 # Jupyter
 .ipynb_checkpoints/
