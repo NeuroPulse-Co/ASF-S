@@ -37,3 +37,11 @@ TABLE5 = {
         "l2":     dict(d_acc=-21.05, params_red=92.7, flops_red=98.2),
     },
 }
+
+# Kept filters per layer that reproduce Table 5's ASF-S (params↓, FLOPs↓) exactly.
+# Conv2Net: (19, 16) gives 75.84% / 82.67% vs the paper's 75.8 / 82.7; the next-closest
+# configuration is ~0.9 points off (LOG.md, step 7). Conv6Net is not derived: with 6 layers
+# the two reported numbers do not pin down a unique configuration.
+TABLE5_ASFS_KEPT = {
+    "conv2net": {"conv1": 19, "conv2": 16},
+}

@@ -90,12 +90,33 @@ Informative rows (any method > 20% before fine-tuning):
   τ₁ = 0.2, but it is weak evidence.
 - Pre-fine-tuning accuracy is not the paper's metric; step 8 decides.
 
-## Plan for step 8 (to agree)
+## Step 8 prepared (scope agreed: paper point + grid, paper-only available)
 
-- **Main comparison at the paper's point (19, 16).** Top-k selection by aligned PGI, original PGI, L1, L2 and
-  random (3 draws). FC-only fine-tuning (b) and full fine-tuning (a). Target: ΔAcc −3.78 (Table 5).
-- **Plus the τ grid's unique configs** (49, aligned) with FC-only fine-tuning, for the Fig. 6-style Pareto
-  plot.
+`asfs/finetune.py`, `steps/step8_finetune.py`, run with `--scope paper|grid|all`.
+
+- **Paper scope (21 runs, ~1–1.5 h).** At exactly (19, 16) kept filters, chosen top-k by aligned PGI,
+  original PGI, L1, L2 and random (3 draws). Each pruned model is fine-tuned in three modes:
+  - **`fc`:** FC trainable, BatchNorm in train mode, so its running statistics re-adapt. This is what the
+    original code does (cifar100 `fine_tune_fc` calls `model.train()` with frozen convs). It is the
+    reproduction default.
+  - **`fc_frozen`:** FC trainable, BN in eval mode, the pruned layers truly frozen. The strict reading of the
+    paper's "freezing the pruned layers".
+  - **`full`:** all layers trainable, ASF-S(a).
+
+  The `fc` vs `fc_frozen` difference measures how much of "FC-only recovery" is really BN re-estimation.
+- **Grid scope (49 runs, ~2.5 h).** The unique kept counts of the step 7 grid (aligned by default),
+  fine-tuned in `fc` mode, for a Fig. 6-style accuracy-vs-sparsity plot.
+- **Recipe [assumed, original scripts]:** Adam 1e-4, augmented training set, early stopping on val acc
+  (patience 10, ≤ 200 epochs), best weights restored. Every run uses the same fine-tuning seed, so the
+  methods are compared paired.
+- **Gate (paper scope, `fc`, primary = aligned):**
+  1. ΔAcc ≥ −3.78 − 2 (one-sided)
+  2. PGI ≥ L1
+  3. PGI ≥ mean of random
+
+  The original PGI and all modes are reported alongside.
+- **Robustness:** each run is appended to `results.csv` as it finishes, and on restart finished runs are
+  skipped.
 
 ---
 

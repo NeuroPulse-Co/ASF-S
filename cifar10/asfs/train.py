@@ -8,11 +8,21 @@ import copy
 import time
 
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
 
 
-def train_epoch(model, loader, opt):
+def set_train_mode(model, bn_eval=False):
+    """model.train(), optionally keeping every BatchNorm in eval mode (running stats frozen)."""
     model.train()
+    if bn_eval:
+        for m in model.modules():
+            if isinstance(m, nn.modules.batchnorm._BatchNorm):
+                m.eval()
+
+
+def train_epoch(model, loader, opt, bn_eval=False):
+    set_train_mode(model, bn_eval)
     total_loss = correct = n = 0
     for x, y in loader:
         logits = model(x)
@@ -39,11 +49,12 @@ def evaluate(model, loader):
 
 
 def fit(model, train_loader, val_loader, opt, max_epochs, patience,
-        monitor="val_loss", scheduler=None, log=print):
+        monitor="val_loss", scheduler=None, log=print, bn_eval=False):
     """
     Train until `monitor` stops improving for `patience` epochs or max_epochs is reached.
     monitor: "val_loss" (lower is better) or "val_acc" (higher is better).
     scheduler: ReduceLROnPlateau, stepped on val loss each epoch.
+    bn_eval: keep BatchNorm in eval mode while training (no running-stat updates).
     Restores the best weights. Returns (best_record, history).
     """
     sign = 1 if monitor == "val_loss" else -1
@@ -51,7 +62,7 @@ def fit(model, train_loader, val_loader, opt, max_epochs, patience,
     history, bad = [], 0
     for epoch in range(1, max_epochs + 1):
         t0 = time.time()
-        tr_loss, tr_acc = train_epoch(model, train_loader, opt)
+        tr_loss, tr_acc = train_epoch(model, train_loader, opt, bn_eval)
         va_loss, va_acc = evaluate(model, val_loader)
         if scheduler is not None:
             scheduler.step(va_loss)
