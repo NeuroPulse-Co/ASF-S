@@ -31,8 +31,8 @@ most likely ran.
 | 3 | AFC matrix W, Eq. 2–3 | Fig. 3: truck ≈ automobile ≠ dog; vehicles vs animals | **PASS** (σ=0.831): d(truck,auto) 0.83 vs 4.85; within 3.19 vs between 4.40; all W connected |
 | 4 | PG1, Eq. 5–8 | unit length, non-degenerate, λ1>λ2>λ3; Fig. 4 | **PASS** (σ=0.831): min λ1−λ2 0.405, λ2−λ3 0.152; PG1 stable (0.987). Invalid at σ=0.1 (W disconnected) |
 | 5 | Contrast + PCA, Eq. 9–11 | top-4 explained variance ≈ 90% (§C.3), ≥ 0.85 | **PASS**: 92.7% (paper ~90%); no sign flips needed |
-| 6 | PGI, Eq. 12–13 (`literal` / `aligned`) | Fig. 11; sanity (finite, [0,1], non-degenerate); ρ vs L1 norm | code ready |
-| 7 | Prune, 9×9 τ grid | prune == mask; operating points of Tables 1 and 5 exist | |
+| 6 | PGI, Eq. 12–13 (`literal` / `aligned`) | Fig. 11; sanity (finite, [0,1], non-degenerate); ρ vs L1 norm | **PASS**: half of each layer < 0.2; aligned vs original ρ ≈ 0 (−0.16, +0.03) |
+| 7 | Prune, 9×9 τ grid | prune == mask; operating points of Tables 1 and 5 exist; pre-FT PGI vs L1/random | code ready |
 | 8 | Fine-tune: FC-only (b), full (a) | ΔAcc −7.74 at 70% (Table 1); −3.78 at 75.8% (Table 5) | |
 | 9 | Baselines: random, L1, L2, top-k | Table 5 rows; Fig. 7 | |
 
