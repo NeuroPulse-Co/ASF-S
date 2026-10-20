@@ -34,3 +34,6 @@ __pycache__/
 
 # scripts/run_pipeline.sh writes per-run step logs here
 logs/
+
+#Seed Paper
+ASF-S.md
