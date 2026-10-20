@@ -39,9 +39,19 @@ driver 535, torch 2.5.1+cu121.
   with no training needed.
 - **`--seed`** on every step. Used to measure seed-to-seed spread, so the 1.18-point gap can be judged.
 
+## Fixed: `run.sh` exited silently
+
+- **Symptom.** `run.sh diag_aug_parity` and `run.sh 1 --run-id seed43 --seed 43` returned immediately with no
+  output.
+- **Cause.** The script lookup ran `ls` on two candidate paths. One never exists (`steps/1.py`, or
+  `steps/stepdiag_aug_parity_*.py`). `ls` then exits with 2, and under `set -o pipefail` the assignment kills the
+  script, with stderr discarded.
+- **Fix.** Check each candidate path with `[[ -f ]]`, and print an error if none matches. Tested locally with a
+  stub Python: step `1` runs, `diag_aug_parity` runs, and an unknown name errors.
+
 ## Next
 
-- [ ] `./cifar10/run.sh test`, including the new per-sample jitter test
+- [x] `./cifar10/run.sh test`: **22 passed**, including the per-sample jitter test and the rotation-vs-torchvision test
 - [ ] `./cifar10/run.sh diag_aug_parity`. Expect all KS < 0.05.
 - [ ] Seed spread, gpu backend: `./cifar10/run.sh 1 --run-id seed43 --seed 43` and `--run-id seed44 --seed 44`
   (about 6 min each)

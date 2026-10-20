@@ -23,8 +23,11 @@ if [[ "$STEP" == test ]]; then
   exec "$PY" -m pytest -q "$HERE/tests" "$@"
 fi
 
-SCRIPT=$(ls "$HERE"/steps/step"${STEP}"_*.py "$HERE"/steps/"${STEP}".py 2>/dev/null | head -1)
-[[ -n "$SCRIPT" ]] || { echo "no script for step $STEP" >&2; exit 1; }
+SCRIPT=""
+for f in "$HERE"/steps/step"${STEP}"_*.py "$HERE"/steps/"${STEP}".py; do
+  [[ -f "$f" ]] && { SCRIPT="$f"; break; }
+done
+[[ -n "$SCRIPT" ]] || { echo "no script for step '$STEP' in $HERE/steps" >&2; exit 1; }
 
 RUN_ID=run01
 for ((i = 1; i <= $#; i++)); do
