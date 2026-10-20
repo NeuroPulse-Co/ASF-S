@@ -73,7 +73,7 @@ def main():
     plot(dG, comps, ratio, out / "fig5_contrast.png")
 
     checks = [check(f"top-{K} explained variance ≥ {GATE_MIN}", round(top, 4), 0.90,
-                    tolerance=0.90 - GATE_MIN, ok=top >= GATE_MIN)]
+                    tolerance=round(0.90 - GATE_MIN, 4), ok=top >= GATE_MIN)]
     write_gate(out, "step5_contrast_pca", args, checks, info={
         "K": K, "explained": [round(float(r), 4) for r in ratio],
         "flipped_classes": [C.CLASSES[c] for c in np.flatnonzero(flips)],

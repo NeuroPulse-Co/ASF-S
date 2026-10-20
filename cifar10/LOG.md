@@ -8,6 +8,60 @@ driver 535, torch 2.5.1+cu121.
 
 ---
 
+# 2026-10-20 — Step 5: top-4 PCA components explain 92.7%, against the paper's ~90%
+
+## Run
+
+| | |
+|---|---|
+| Command | `./cifar10/run.sh 5` (σ = 0.831 PG1, sign alignment on, K = 4) |
+| Result | **PASS**. Top-4 explained variance **0.927**, against the paper's "~90%" (§C.3) |
+
+Cumulative explained variance: 0.448, 0.652, 0.809, **0.927**, 0.977, 0.992, 0.997, 0.999, 1, 1.
+
+| Component | Share | Largest loadings (output units) |
+|---|---|---|
+| u1 | 44.8% | bird +0.54, automobile −0.43, cat +0.41 |
+| u2 | 20.4% | cat +0.60, deer −0.44, airplane −0.39 |
+| u3 | 15.7% | horse +0.61, bird −0.52, dog +0.31 |
+| u4 | 11.8% | airplane +0.52, dog −0.47, frog +0.38 |
+
+## Notes
+
+- **This is the first paper number the PG pipeline matches directly.**
+- **No class needed a sign flip.** The canonical sign from step 4 (largest-|·| entry positive) already keeps each
+  class's g_corr and g_incorr pointing the same way, so the result is the same with and without alignment (0.927).
+- **Legacy PG1 gives 0.962,** more concentrated, as expected from its λ^½ scaling, which exaggerates
+  differences between classes.
+- **u1 roughly separates animals (bird, cat +) from vehicles (automobile −).** It is the same split that
+  organises the AFC maps in step 3. The later components contrast specific confusable pairs.
+- Cosmetic fix: the gate tolerance is now rounded (it printed `0.050000000000000044`).
+
+## Step 6 prepared: PGI (`asfs/pgi.py`, `steps/step6_pgi.py`)
+
+- **The problem with Eq. 12.** u_k ∈ R¹⁰ lives on the output units, so u_k ⊙ w̄^(f) needs w̄^(f) ∈ R¹⁰, and w_i
+  must then be in R¹⁰ too. A conv filter's flattened weights have 27 values (conv1) or 288 (conv2). The paper
+  never says how to map them.
+- **`literal` mode** is the original code, verified line-for-line against `min_scripts/pg_pruning_conv2.py` in
+  `test_step6.py`:
+  - w̄ is the mean over FC *rows*, giving 16,384 values.
+  - Everything is cut to the first 10 entries, so for conv1 the score uses only the red-channel kernel and one
+    green weight.
+  - |mean_k s|.
+- **`aligned` mode** (the default):
+  - w̄^(f) is the mean over FC *columns*, giving one value per output unit.
+  - w_i is replaced by e_i ∈ R¹⁰, filter i's effective linear weight to each output unit. For conv2, e_i is the
+    mean of the 256 FC columns its channel feeds, times its BN scale. For conv1, it is propagated back through
+    conv2's kernel-summed weights and BN1's scale. ReLU and pooling are ignored.
+  - Eq. 13 as written: mean_k |s|.
+- **The paper gives no number for this step,** so the gate is a sanity check: finite, spans [0, 1], not
+  degenerate. The informative outputs are:
+  - per layer, the fraction of filters below each τ, which predicts step 7's sparsity grid
+  - Spearman ρ against the filter L1 norm (does PGI add anything over magnitude?)
+  - Spearman ρ between aligned and original
+
+---
+
 # 2026-10-20 — Step 4: at σ = 0.1, PG1 is not defined (repeated eigenvalue 1). Gate tightened
 
 ## Run
