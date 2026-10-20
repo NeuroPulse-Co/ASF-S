@@ -77,7 +77,35 @@ Stability = |cos| between PG1 built from two independent 50-image draws of the s
 
 ## Next
 
-- [ ] Rerun step 3 (σ = 0.831 now; check the Fig. 3 gate still passes) and step 4 (new gap checks)
+- [x] Reran step 3 at **σ = 0.8309** (median rule, the same value as the sweep): **PASS**
+
+  | | σ = 0.1 (before) | σ = 0.831 |
+  |---|---|---|
+  | W connectivity, all 20 groups | 0.067–0.356 | **1.000** |
+  | d(truck, automobile) | 1.085 | **0.834** |
+  | d(truck, dog), d(automobile, dog) | 2.369, 2.699 | 4.859, 4.852 |
+  | within / between (vehicles vs animals) | 1.290 / 2.452 (ratio 0.53) | 3.191 / 4.399 (ratio 0.73) |
+
+  - Every unit pair is now connected.
+  - The truck–automobile vs dog separation is stronger: 5.8×, up from 2.2×.
+  - The vehicles/animals grouping still holds but has a smaller margin.
+  - A is unchanged, as expected.
+- [x] Reran step 4 at σ = 0.831: **PASS** on all four checks. min λ1 − λ2 = 0.4053 and min λ2 − λ3 = 0.1521,
+  exactly as the sweep predicted. Every PG1 has 10 distinct values.
+
+  | | correct groups | incorrect groups |
+  |---|---|---|
+  | λ2 | 0.41–0.59 | 0.35–0.55 |
+  | participation ratio | 1.84–4.76 (mostly < 3.2) | 3.11–8.45 |
+  | \|cos\| paper vs legacy | 0.990–0.995 | 0.993–0.999 |
+
+  - **Paper and legacy PG1 now agree** (|cos| ≥ 0.99, up from 0.00–0.99 at σ = 0.1). The original code's
+    differences (row-normalised M, `eigh` on a non-symmetric matrix, λ^½ scaling) barely change the *direction*
+    of PG1 once W is connected. **The original method failed because of σ = 0.1 and S = 1, not because of the
+    eigensolver.**
+  - **Correct-split PG1 is concentrated on a few output units, incorrect-split PG1 is spread out.** When the model
+    is right, the true class and its usual confusions dominate the co-activation structure. When it is wrong, more
+    units take part. This difference is what the step 5 contrast Δg = g_corr − g_incorr picks up.
 
 ---
 
