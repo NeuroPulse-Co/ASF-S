@@ -1,0 +1,11 @@
+class,name,correct,incorrect
+0,airplane,816,184
+1,automobile,929,71
+2,bird,676,324
+3,cat,711,289
+4,deer,712,288
+5,dog,644,356
+6,frog,824,176
+7,horse,754,246
+8,ship,837,163
+9,truck,866,134

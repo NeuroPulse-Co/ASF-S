@@ -1,0 +1,29 @@
+{
+  "step": "step1_train",
+  "model": "conv2net",
+  "protocol": "paper",
+  "time": "2026-10-20 16:32:42",
+  "pass": true,
+  "checks": [
+    {
+      "metric": "test_acc (\u2265 paper \u2212 tol)",
+      "ours": 75.32,
+      "paper": 72.69,
+      "tolerance": 1.5,
+      "pass": true
+    }
+  ],
+  "info": {
+    "best_epoch": 98,
+    "epochs_run": 100,
+    "best_val_loss": 0.7159,
+    "best_val_acc": 75.32,
+    "test_ece": 0.0131,
+    "minutes": 8.7,
+    "val_is_test": true,
+    "es_patience": 15,
+    "backend": "gpu",
+    "seed": 42,
+    "lr_drops_at": []
+  }
+}

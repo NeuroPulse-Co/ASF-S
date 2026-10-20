@@ -1,0 +1,47 @@
+{
+  "step": "step3_afc",
+  "model": "conv2net",
+  "protocol": "paper",
+  "time": "2026-10-20 16:55:57",
+  "pass": true,
+  "checks": [
+    {
+      "metric": "W: d(truck,auto) < d(truck,dog), d(auto,dog)",
+      "ours": 0.8341,
+      "paper": 4.8516,
+      "tolerance": null,
+      "pass": true
+    },
+    {
+      "metric": "W: mean within-group < between (vehicles / animals)",
+      "ours": 3.1908,
+      "paper": 4.399,
+      "tolerance": null,
+      "pass": true
+    }
+  ],
+  "info": {
+    "S": 50,
+    "sigma": 0.8309,
+    "sigma_rule": "median",
+    "units": 10,
+    "W_connectivity_min": 1.0,
+    "W_connectivity_mean": 1.0,
+    "A_checks": {
+      "pair": true,
+      "group": true,
+      "truck_auto": 1.998,
+      "truck_dog": 8.5321,
+      "auto_dog": 8.5726,
+      "within": 5.7307,
+      "between": 7.71
+    },
+    "W_distances": {
+      "truck_auto": 0.8341,
+      "truck_dog": 4.859,
+      "auto_dog": 4.8516,
+      "within": 3.1908,
+      "between": 4.399
+    }
+  }
+}

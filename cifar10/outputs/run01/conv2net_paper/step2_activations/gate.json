@@ -1,0 +1,24 @@
+{
+  "step": "step2_activations",
+  "model": "conv2net",
+  "protocol": "paper",
+  "time": "2026-10-20 16:33:11",
+  "pass": true,
+  "checks": [
+    {
+      "metric": "min samples per (class, split) \u2265 S=50",
+      "ours": 71,
+      "paper": 50,
+      "tolerance": null,
+      "pass": true
+    }
+  ],
+  "info": {
+    "pg_set": "train-subset",
+    "n_images": 10000,
+    "units": 10,
+    "accuracy": 77.69,
+    "min_incorrect": 71,
+    "min_incorrect_class": "automobile"
+  }
+}

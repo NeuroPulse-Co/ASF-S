@@ -8,6 +8,91 @@ driver 535, torch 2.5.1+cu121.
 
 ---
 
+# 2026-10-20 — Server results imported; figure review and a step 1 correction
+
+Pulled to this machine with
+`rsync -rczm --include='*/' --include='gate.json' --include='*.png' --include='*.csv' --include='*.json' --include='*.log' --exclude='*' yutharsan@intellisense08-ewispro9900g:~/NeuroPulseCo/ASF-S/cifar10/outputs/ cifar10/outputs/`.
+The server resolves over Tailscale. Checkpoints and `.npz` stay on the server.
+
+## Correction to the step 1 diagnosis
+
+- **The canonical run01 (75.32%) never dropped its LR** (`lr_drops_at: []`). Best epoch 98 of 100. diag_tv:
+  likewise no drop, best epoch 97. seed 44 (in `outputs/seed43/`): drop after epoch 46, best epoch 91.
+- **The "LR drop ≈ 1.9 points" analysis applied only to the overwritten first run01.** It does not explain the
+  gap: the canonical model reaches 75.3% without any drop.
+- **The models are still improving at the 100-epoch cap.** Val loss is still falling at epoch 100. Val accuracy
+  stays above train accuracy throughout (train is augmented, test is not).
+- **So the paper's lower 72.69% is more likely** an earlier stop in their setup, or dropout. It is not our LR
+  schedule.
+
+## Figure review
+
+- **Fig. 3 (`fig3_afc.png`):** truck and automobile have near-identical block structure. Their own units
+  (automobile, truck) are anti-aligned with a co-active block of the other 8. Dog shows a different, animal-unit
+  pattern. Matches the paper's §5.2 description.
+- **Fig. 4 (`fig4_pg1.png`):** PG1 picks out each class's semantic cluster.
+  - Truck and automobile: + on {automobile, truck}, − on the animals.
+  - Dog: + on {cat, dog, bird}.
+  - Incorrect groups show the same shape plus the confusions; incorrect truck adds + on airplane and ship.
+- **Fig. 5 (`fig5_contrast.png`):** the |Δg_c| scales differ about 8× between classes. Airplane, horse, deer and
+  frog reach about ±0.4; dog, cat, automobile and ship stay within about ±0.1. **Without per-class
+  normalisation (the paper has none), the PCA, and therefore PGI, is dominated by the few classes whose correct
+  and incorrect PG1 differ most.** This is a property of the method as written. A per-class-normalised variant
+  could be tested later.
+- **Fig. 11 (`fig11_pgi.png`):** primary = aligned, as expected. The original variant's conv2 scores are more
+  evenly spread. In every variant one or two filters set the min–max scale.
+
+---
+
+# 2026-10-20 — Step 6: PGI computed; the two readings of Eq. 12 pick unrelated filters
+
+## Run
+
+| | |
+|---|---|
+| Command | `./cifar10/run.sh 6` (aligned mode, Eq. 13 mean_k \|s\|) |
+| Result | **PASS** (sanity gate): both layers finite, span [0, 1], all scores distinct |
+
+| | conv1 (32 filters) | conv2 (64 filters) |
+|---|---|---|
+| fraction below τ = 0.1 / 0.2 / 0.3 / 0.4 / 0.5 | 0.19 / 0.50 / 0.69 / 0.84 / 0.91 | 0.16 / 0.52 / 0.72 / 0.81 / 0.91 |
+| fraction below τ = 0.6 / 0.7 / 0.8 / 0.9 | 0.94 / 0.94 / 0.97 / 0.97 | 0.95 / 0.98 / 0.98 / 0.98 |
+| Spearman ρ, PGI vs L1 norm | +0.224 | +0.572 |
+| Spearman ρ, aligned vs original (literal, \|mean\|) | **−0.159** | **+0.033** |
+
+## Notes
+
+- **The interpretation of Eq. 12 decides which filters are pruned.** The dimensionally consistent reading and
+  the original code's prefix truncation rank filters with essentially no correlation. Whatever the paper's
+  results show was produced by the literal reading. **Step 8 fine-tunes both,** so we can see which (if
+  either) reproduces Tables 1 and 5.
+- **Aligned PGI is related to weight magnitude, but only partly** (ρ 0.57 for conv2, 0.22 for conv1). Whether
+  the extra information helps can only be judged after pruning (steps 7–9, against L1 and random at matched
+  kept counts).
+- **The scores are heavily skewed.** A few filters dominate the min–max scale; half of each layer is below 0.2
+  and over 90% below 0.5. Most of the 9×9 τ grid is therefore very aggressive.
+- **conv2 sets the parameter count.** Each conv2 filter feeds 2,560 FC weights, and the FC holds 89% of all
+  parameters. The paper's 70% operating point needs τ₂ around 0.3 (72% of conv2 pruned).
+
+## Step 7 prepared: pruning and the τ grid (`asfs/prune.py`, `steps/step7_prune_grid.py`)
+
+- **Physical removal.** Each kept filter is copied with its BN channel, the next conv's matching input channels,
+  and, after the last conv, its 256 FC columns (channel-major). Eq. 14: keep PGI ≥ τ, and never leave a layer
+  empty.
+- **Correctness test: prune == mask.** The masked twin zeroes the dropped channels' *inputs to the next layer*.
+  Zeroing the filter's own weights would not be equivalent, because BN + ReLU turn a zero map into the constant
+  ReLU(β − γμ/σ). Tested on Conv2Net and Conv6Net at 3 keep fractions, and checked again at run time on the
+  real model.
+- **The grid.** 9×9 (τ₁, τ₂) for each of `--variant primary|aligned|original`. Per point it records kept
+  counts, params/FLOPs reduction, filter reduction and accuracy before fine-tuning. It also records **L1 and
+  random selections at the same kept counts**: an early answer to whether PGI picks better filters, with no
+  fine-tuning needed.
+- **Gate:** prune == mask; grid points exist within ±5 of 70% (Table 1) and 75.8% (Table 5) parameter
+  reduction. Their FLOPs reductions are compared with the paper's 57.01% and 82.7%. This also tests what the
+  paper means by "sparsity": parameters or filters.
+
+---
+
 # 2026-10-20 — Step 5: top-4 PCA components explain 92.7%, against the paper's ~90%
 
 ## Run
@@ -338,7 +423,7 @@ Stability = |cos| between PG1 built from two independent 50-image draws of the s
 
 ## Diagnosis so far
 
-**Early-stopping patience explains about half the gap.** The paper gives the LR-plateau patience (10) but not
+**Early-stopping patience explains about half the gap** *(later corrected: this applied only to the first run01; the canonical run01 never dropped its LR. See "Server results imported")*. The paper gives the LR-plateau patience (10) but not
 the early-stopping patience; we assumed 15. From `history.csv`:
 
 - The best val loss before the first LR drop was at epoch 79, with **74.67%**.

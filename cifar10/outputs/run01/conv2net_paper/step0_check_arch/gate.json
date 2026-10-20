@@ -1,0 +1,51 @@
+{
+  "step": "step0_check_arch",
+  "model": "conv2net",
+  "protocol": "paper",
+  "time": "2026-10-20 13:52:23",
+  "pass": true,
+  "checks": [
+    {
+      "metric": "params",
+      "ours": 183434,
+      "paper": 183000,
+      "tolerance": 915,
+      "pass": true
+    },
+    {
+      "metric": "flops",
+      "ours": 40894484,
+      "paper": 40890000.0,
+      "tolerance": 408900,
+      "pass": true
+    },
+    {
+      "metric": "split_sizes",
+      "ours": {
+        "train": 50000,
+        "val": 10000,
+        "test": 10000,
+        "pg": 10000
+      },
+      "paper": {
+        "train": 50000,
+        "val": 10000,
+        "test": 10000,
+        "pg": 10000
+      },
+      "tolerance": null,
+      "pass": true
+    }
+  ],
+  "info": {
+    "params": 183434,
+    "flops": 40894484,
+    "throughput": {
+      "gpu_s_per_epoch": 3.5,
+      "torchvision_s_per_epoch": 8.3
+    },
+    "torch": "2.5.1+cu121",
+    "cuda": "12.1",
+    "gpu": "NVIDIA GeForce RTX 2080"
+  }
+}

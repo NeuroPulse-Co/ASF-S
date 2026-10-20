@@ -1,0 +1,51 @@
+{
+  "step": "step4_pg1",
+  "model": "conv2net",
+  "protocol": "paper",
+  "time": "2026-10-20 17:08:28",
+  "pass": true,
+  "checks": [
+    {
+      "metric": "all PG1 finite and unit length",
+      "ours": 0.0,
+      "paper": 0.0,
+      "tolerance": 1e-06,
+      "pass": true
+    },
+    {
+      "metric": "min distinct values per PG1 \u2265 3",
+      "ours": 10,
+      "paper": 3,
+      "tolerance": null,
+      "pass": true
+    },
+    {
+      "metric": "W connected: min \u03bb1 \u2212 \u03bb2 > 1e-3",
+      "ours": 0.405323,
+      "paper": 0.001,
+      "tolerance": null,
+      "pass": true
+    },
+    {
+      "metric": "v2 unique: min \u03bb2 \u2212 \u03bb3 > 1e-3",
+      "ours": 0.152147,
+      "paper": 0.001,
+      "tolerance": null,
+      "pass": true
+    }
+  ],
+  "info": {
+    "mode": "paper",
+    "alpha": 0.5,
+    "sigma": 0.8309,
+    "min_gap_12": 0.40532,
+    "participation_min": 1.84,
+    "participation_median": 3.13,
+    "min_spectral_gap": 0.15215,
+    "median_spectral_gap": 0.3275,
+    "legacy_abs_cos_min": 0.99,
+    "legacy_abs_cos_median": 0.995,
+    "W_connectivity_min": 1.0,
+    "W_connectivity_median": 1.0
+  }
+}

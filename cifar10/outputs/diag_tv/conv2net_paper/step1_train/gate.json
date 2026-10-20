@@ -1,0 +1,28 @@
+{
+  "step": "step1_train",
+  "model": "conv2net",
+  "protocol": "paper",
+  "time": "2026-10-20 14:39:22",
+  "pass": false,
+  "checks": [
+    {
+      "metric": "test_acc",
+      "ours": 75.35,
+      "paper": 72.69,
+      "tolerance": 1.5,
+      "pass": false
+    }
+  ],
+  "info": {
+    "best_epoch": 97,
+    "epochs_run": 100,
+    "best_val_loss": 0.7143,
+    "best_val_acc": 75.35,
+    "test_ece": 0.0182,
+    "minutes": 15.3,
+    "val_is_test": true,
+    "es_patience": 15,
+    "backend": "torchvision",
+    "lr_drops_at": []
+  }
+}
