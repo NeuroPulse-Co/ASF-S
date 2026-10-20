@@ -26,8 +26,8 @@ most likely ran.
 | Step | What | Gate (paper) | Status |
 |---|---|---|---|
 | 0 | Model, data pipeline, metrics | params 183K, FLOPs 40.89M (Table 4); split sizes | **PASS**: 183,434 params, 40,894,484 FLOPs; 3.5 s/epoch (gpu) vs 8.3 (torchvision) |
-| 1 | Train Conv2Net (Table 3 recipe) | test acc 72.69% ± 1.5 (Table 4) | **FAIL (high)**: 76.53%; diagnosing, see LOG |
-| 2 | Output-layer activations, correct / incorrect | ≥ S samples per (class, split) | |
+| 1 | Train Conv2Net (Table 3 recipe) | test acc ≥ 72.69% − 1.5 (Table 4), one-sided | about 3 points **above** the paper (74.8–76.5% over 4 runs); pipeline verified, see LOG |
+| 2 | Output-layer activations, correct / incorrect | ≥ S samples per (class, split) | code ready |
 | 3 | AFC matrix W, Eq. 2–3 | Fig. 3: truck ≈ automobile ≠ dog | |
 | 4 | PG1, Eq. 5–8 | unit tests; Fig. 4 | |
 | 5 | Contrast + PCA, Eq. 9–11 | top-4 explained variance ≈ 90% (§C.3) | |

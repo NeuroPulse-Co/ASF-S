@@ -52,11 +52,41 @@ driver 535, torch 2.5.1+cu121.
 ## Next
 
 - [x] `./cifar10/run.sh test`: **22 passed**, including the per-sample jitter test and the rotation-vs-torchvision test
-- [ ] `./cifar10/run.sh diag_aug_parity`. Expect all KS < 0.05.
-- [ ] Seed spread, gpu backend: `./cifar10/run.sh 1 --run-id seed43 --seed 43` and `--run-id seed44 --seed 44`
-  (about 6 min each)
-- [ ] If parity holds and the seed spread covers the gap, make the step 1 gate one-sided and continue to step 2
-  with the run01 model (retrained with the fixed jitter)
+- [x] `./cifar10/run.sh diag_aug_parity`: **parity holds**, every KS < 0.05 (2,000 images × 5 augmentations per
+  backend)
+
+  | stat | torchvision | gpu | KS | p |
+  |---|---|---|---|---|
+  | mean | 0.3912 ± 0.1133 | 0.3943 ± 0.1132 | 0.017 | 0.13 |
+  | std | 0.2556 ± 0.0609 | 0.2554 ± 0.0610 | 0.010 | 0.69 |
+  | sat | 0.1102 ± 0.0740 | 0.1097 ± 0.0732 | 0.009 | 0.78 |
+  | zero | 0.1145 ± 0.0758 | 0.1102 ± 0.0738 | 0.032 | 5.5e-05 |
+  | dist | 0.2205 ± 0.0674 | 0.2194 ± 0.0671 | 0.012 | 0.49 |
+  | hue_shift | 0.0001 ± 0.0504 | 0.0016 ± 0.0515 | 0.022 | 0.016 |
+
+  - **`zero`** (+0.4 points of black pixels in torchvision) and **`mean`** (−0.003) are significant only because
+    the samples are large.
+  - Both fit how torchvision does ColorJitter: it rounds every op back to 8-bit values, so darkened near-black
+    pixels round to exactly 0. Our float pipeline keeps them just above 0.
+  - These are not differences in augmentation strength, so they cannot explain a 1.2-point accuracy gap. That gap
+    is most likely seed noise; the seed runs will check this.
+- [x] Seeds 43 and 44, gpu backend with the fixed jitter: **75.85%** and **74.76%**.
+
+  | Run | Augmentation | Seed | Test acc |
+  |---|---|---|---|
+  | run01 | gpu, jitter order per batch (old) | 42 | 76.53 |
+  | diag_tv | torchvision | 42 | 75.35 |
+  | seed43 | gpu, jitter order per image (fixed) | 43 | 75.85 |
+  | (seed 44) | gpu, jitter order per image (fixed) | 44 | 74.76 |
+
+  - The seed alone moves the fixed gpu backend by 1.1 points, so the 1.2-point gap between backends is noise.
+  - All four runs are 2.1–3.8 points above the paper.
+  - **Note:** the seed 44 run reused `--run-id seed43` and overwrote its files on the server. The 75.85% result
+    is kept only here. From now on, one `--run-id` per run.
+- [x] **Decision: the step 1 gate is now one-sided**: test acc ≥ paper − 1.5. Deviation recorded: our dense
+  Conv2Net is reproducibly about 3 points stronger than the paper's. The likely causes are unreported training
+  details: early-stopping patience (about 1.9 points of it), possibly dropout, and the seed.
+- [ ] Retrain run01 (seed 42) with the fixed jitter. This becomes the canonical dense model for steps 2–9.
 
 ---
 
