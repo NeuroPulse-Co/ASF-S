@@ -46,12 +46,38 @@ driver 535, torch 2.5.1+cu121.
   Fig. 3 checks still hold, and **stability**: |cos| between PG1 built from two independent 50-image draws of the
   same group. A PG1 that reflects the class should be stable; noise is not.
 
-## Decision pending
+## σ sweep (`./cifar10/run.sh diag_sigma`)
 
-- σ is not given in the paper, so we choose it from the sweep. Rule: the smallest σ for which all gaps are
-  > 1e-3 and stability is high, with the Fig. 3 checks still passing. Prefer the median rule if it qualifies, as
-  it is a standard choice rather than one tuned to our results.
-- The original σ = 0.1 stays available as a `legacy` reference, for reproducing the authors' run in step 6.
+Off-diagonal 1 − A quartiles: 0.459 / **0.831** / 1.272, so the median rule gives σ = 0.831.
+
+| σ | conn | min λ1−λ2 | min λ2−λ3 | PR | stability median | stability min | Fig. 3 |
+|---|---|---|---|---|---|---|---|
+| 0.1 (original) | 0.156 | 0 | 0 | 2.95 | 0.673 | 0.282 | yes |
+| 0.2 | 0.344 | 0 | 0.00009 | 2.49 | 0.951 | 0.332 | yes |
+| 0.3 | 0.556 | 0.00030 | 0.02751 | 2.56 | 0.981 | 0.812 | yes |
+| 0.5 | 0.856 | 0.04961 | 0.17341 | 2.63 | 0.984 | 0.885 | yes |
+| 0.75 | 1.000 | 0.31326 | 0.17296 | 3.00 | 0.986 | 0.922 | yes |
+| 1.0 | 1.000 | 0.55409 | 0.11611 | 3.39 | 0.988 | 0.934 | yes |
+| **median (0.831)** | 1.000 | **0.40532** | **0.15215** | 3.13 | **0.987** | **0.927** | yes |
+
+Stability = |cos| between PG1 built from two independent 50-image draws of the same group, averaged over
+5 redraws.
+
+## Decision: σ = median rule
+
+- **The rule fixed in advance** was: the median rule if it meets both gap conditions (> 1e-3) and gives stable
+  PG1. It meets both by a wide margin, so `config.SIGMA = "median"`.
+- **How it is applied.** Step 3 computes σ from its own cosine matrices and saves it in `afc.npz`, so the rule
+  adapts to the `clean` protocol and to Conv6Net. `SIGMA_LEGACY = 0.1` is kept.
+- **Robustness:** from σ = 0.5 to 1.0 every metric is flat (stability 0.98–0.99, Fig. 3 holds). The choice is
+  not fitted to a particular outcome.
+- **Finding:** at a valid σ, PG1 is a stable property of each (class, split) group. Independent 50-image draws
+  give nearly the same vector (median |cos| 0.987). This is the first positive evidence for the paper's PG1 idea.
+- **At σ = 0.1** even the stability is poor (minimum 0.28), in line with the degenerate eigenspace.
+
+## Next
+
+- [ ] Rerun step 3 (σ = 0.831 now; check the Fig. 3 gate still passes) and step 4 (new gap checks)
 
 ---
 

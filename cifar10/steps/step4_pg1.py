@@ -28,7 +28,7 @@ GAP_MIN = 1e-3
 AUTO, DOG, TRUCK = 1, 5, 9
 
 
-def plot(g, path, classes):
+def plot(g, path, classes, sigma):
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -41,7 +41,7 @@ def plot(g, path, classes):
             a.axhline(0, color="k", lw=0.5)
             a.set_title(f"{C.CLASSES[c]} – {split}", fontsize=9)
             a.set_xticks(units); a.set_xticklabels([n[:4] for n in C.CLASSES], rotation=90, fontsize=7)
-    fig.suptitle(f"PG1 of the output layer ({C.PG_MODE} mode) – cf. paper Fig. 4", fontsize=10)
+    fig.suptitle(f"PG1 of the output layer ({C.PG_MODE} mode, σ={sigma:.3f}) – cf. paper Fig. 4", fontsize=10)
     fig.tight_layout(); fig.savefig(path, dpi=120); plt.close(fig)
 
 
@@ -49,7 +49,8 @@ def main():
     args = parse_args("step4_pg1")
     seed_everything(args.seed)
     out = step_dir(args, "step4_pg1")
-    W = np.load(run_dir(args) / "step3_afc" / "afc.npz")["W"]          # (classes, 2, N, N)
+    afc = np.load(run_dir(args) / "step3_afc" / "afc.npz")
+    W, sigma = afc["W"], float(afc["sigma"])                            # W: (classes, 2, N, N)
     n_cls, _, n, _ = W.shape
 
     g = np.zeros((n_cls, 2, n)); g_leg = np.zeros_like(g); lam = np.zeros_like(g)
@@ -73,7 +74,7 @@ def main():
         for s, split in enumerate(SPLITS):
             print(f"{C.CLASSES[c] + '/' + split:22s} {lam[c, s, 1]:7.4f} {gap12[c, s]:7.4f} {gap[c, s]:7.4f} "
                   f"{pr[c, s]:5.2f} {distinct[c, s]:8d} {agree[c, s]:12.3f} {conn[c, s]:7.3f}")
-    plot(g, out / "fig4_pg1.png", [TRUCK, AUTO, DOG])
+    plot(g, out / "fig4_pg1.png", [TRUCK, AUTO, DOG], sigma)
 
     checks = [
         check("all PG1 finite and unit length", round(float(np.abs(norms - 1).max()), 8), 0.0, tolerance=1e-6,
@@ -83,7 +84,7 @@ def main():
         check("v2 unique: min λ2 − λ3 > 1e-3", round(float(gap.min()), 6), GAP_MIN, ok=gap.min() > GAP_MIN),
     ]
     write_gate(out, "step4_pg1", args, checks, info={
-        "mode": C.PG_MODE, "alpha": C.ALPHA, "sigma": C.SIGMA,
+        "mode": C.PG_MODE, "alpha": C.ALPHA, "sigma": round(sigma, 4),
         "min_gap_12": round(float(gap12.min()), 5), "participation_min": round(float(pr.min()), 2),
         "participation_median": round(float(np.median(pr)), 2),
         "min_spectral_gap": round(float(gap.min()), 5), "median_spectral_gap": round(float(np.median(gap)), 5),

@@ -4,7 +4,8 @@ Step 3 tests: Eq. 1–3 on hand-checkable inputs.
 
 import numpy as np
 
-from asfs.afc import activation_matrix, afc, connectivity, cosine_similarity, gaussian_affinity
+from asfs.afc import (activation_matrix, afc, connectivity, cosine_similarity, gaussian_affinity,
+                      median_sigma, resolve_sigma)
 
 
 def test_activation_matrix_is_units_by_samples():
@@ -47,3 +48,12 @@ def test_afc_shapes_and_symmetry():
 def test_connectivity():
     assert connectivity(np.eye(4)) == 0.0
     assert connectivity(np.ones((4, 4))) == 1.0
+
+
+def test_median_sigma():
+    A1 = np.array([[1.0, 0.8], [0.8, 1.0]])            # off-diagonal 1 − A = 0.2, 0.2
+    A2 = np.array([[1.0, -0.2], [-0.2, 1.0]])          # 1.2, 1.2
+    A3 = np.array([[1.0, 0.4], [0.4, 1.0]])            # 0.6, 0.6
+    assert abs(median_sigma([A1, A2, A3]) - 0.6) < 1e-12
+    assert resolve_sigma("median", [A1, A2, A3]) == median_sigma([A1, A2, A3])
+    assert resolve_sigma(0.3, [A1]) == 0.3

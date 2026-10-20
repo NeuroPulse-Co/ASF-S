@@ -21,7 +21,7 @@ import itertools
 import numpy as np
 
 from common import C, check, parse_args, run_dir, seed_everything, step_dir, write_gate
-from asfs.afc import afc, connectivity
+from asfs.afc import connectivity, cosine_similarity, activation_matrix, gaussian_affinity, resolve_sigma
 
 SPLITS = ("correct", "incorrect")
 VEHICLES = [0, 1, 8, 9]                       # airplane, automobile, ship, truck
@@ -78,8 +78,13 @@ def main():
     for c in range(C.NUM_CLASSES):
         for s, split in enumerate(SPLITS):
             idx[c, s] = draw(labels, correct, c, split, S, rng)
-            A[c, s], W[c, s] = afc(acts[idx[c, s]], C.SIGMA, C.EPS)
-    np.savez_compressed(out / "afc.npz", A=A, W=W, idx=idx, sigma=C.SIGMA, eps=C.EPS)
+            A[c, s] = cosine_similarity(activation_matrix(acts[idx[c, s]]))
+    sigma = resolve_sigma(C.SIGMA, A.reshape(-1, n, n))
+    for c in range(C.NUM_CLASSES):
+        for s in range(2):
+            W[c, s] = gaussian_affinity(A[c, s], sigma, C.EPS)
+    print(f"σ = {sigma:.4f} ({C.SIGMA})")
+    np.savez_compressed(out / "afc.npz", A=A, W=W, idx=idx, sigma=sigma, eps=C.EPS)
 
     conn = {f"{C.CLASSES[c]}/{split}": round(connectivity(W[c, s]), 3)
                                  for c in range(C.NUM_CLASSES) for s, split in enumerate(SPLITS)}
@@ -92,8 +97,8 @@ def main():
     print("W distances:", nums_W)
     print("A distances:", nums_A)
 
-    plot(W, out / "fig3_afc.png", [TRUCK, AUTO, DOG], f"AFC W (σ={C.SIGMA}), S={S} – cf. paper Fig. 3")
-    plot(W, out / "fig3_all_classes.png", list(range(C.NUM_CLASSES)), f"AFC W (σ={C.SIGMA}), all classes")
+    plot(W, out / "fig3_afc.png", [TRUCK, AUTO, DOG], f"AFC W (σ={sigma:.3f}), S={S} – cf. paper Fig. 3")
+    plot(W, out / "fig3_all_classes.png", list(range(C.NUM_CLASSES)), f"AFC W (σ={sigma:.3f}), all classes")
 
     checks = [
         check("W: d(truck,auto) < d(truck,dog), d(auto,dog)", nums_W["truck_auto"],
@@ -102,7 +107,7 @@ def main():
               nums_W["between"], ok=group_W),
     ]
     write_gate(out, "step3_afc", args, checks, info={
-        "S": S, "sigma": C.SIGMA, "units": n,
+        "S": S, "sigma": round(sigma, 4), "sigma_rule": str(C.SIGMA), "units": n,
         "W_connectivity_min": min(conn.values()), "W_connectivity_mean": round(float(np.mean(list(conn.values()))), 3),
         "A_checks": {"pair": bool(pair_A), "group": bool(group_A), **nums_A}, "W_distances": nums_W})
 

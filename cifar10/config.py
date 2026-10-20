@@ -51,7 +51,11 @@ EARLY_STOP_PATIENCE = 15                           # [assumed] paper says "early
 PG_LAYER        = {"conv2net": "fc", "conv6net": "fc2"}   # the output layer [paper §4]
 ACT_PER_CLASS   = 1000      # [assumed] original activation_ext3.py: 1000/class train subset
 S_SAMPLES       = 50        # [assumed] S in Eq. 1; original pg_ext_2.py max_samples
-SIGMA           = 0.1       # [assumed] Eq. 3; original scripts
+# σ in Eq. 3 is not given in the paper. The original scripts' 0.1 disconnects the 10×10
+# output-layer graph (λ1 = λ2 = λ3 = 1, PG1 undefined; LOG.md, step 4). "median" = median of
+# the off-diagonal 1 − A over all (class, split) groups, computed in step 3 and saved there.
+SIGMA           = "median"  # [assumed] chosen by diag_sigma: run01 → 0.831, stable PG1
+SIGMA_LEGACY    = 0.1       # original scripts; kept for the legacy reproduction
 ALPHA           = 0.5       # [assumed] Eq. 6; original scripts
 EPS             = 1e-6      # [assumed] Eq. 3
 PCA_K           = 4         # [paper §C.3] top 4 components, ~90% variance

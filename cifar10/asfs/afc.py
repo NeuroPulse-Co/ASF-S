@@ -26,6 +26,17 @@ def gaussian_affinity(A, sigma, eps):
     return 0.5 * (W + W.T) + eps * np.eye(len(W))
 
 
+def median_sigma(As):
+    """Median rule for σ: median of off-diagonal (1 − A) pooled over a list of cosine matrices."""
+    off = [(1.0 - A)[~np.eye(len(A), dtype=bool)] for A in As]
+    return float(np.median(np.concatenate(off)))
+
+
+def resolve_sigma(sigma, As):
+    """config.SIGMA may be a number or "median"."""
+    return median_sigma(As) if sigma == "median" else float(sigma)
+
+
 def afc(acts, sigma, eps):
     """acts (S, N) → (A, W)."""
     A = cosine_similarity(activation_matrix(acts))
