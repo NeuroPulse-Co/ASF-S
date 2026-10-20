@@ -8,6 +8,97 @@ driver 535, torch 2.5.1+cu121.
 
 ---
 
+# 2026-10-20 — Step 7 (aligned): the paper's Table 5 point is exactly (19, 16) kept filters; Table 1's is impossible
+
+## Run
+
+| | |
+|---|---|
+| Command | `./cifar10/run.sh 7 --variant aligned` (`--variant original` not run yet) |
+| Gate | **PASS**: prune == mask (max \|Δlogit\| 1.1e-5); grid points within ±5 of 70% and 75.8% params↓ |
+
+## Finding 1: Table 1's Conv2Net point is not achievable; Table 5's is, at exactly (19, 16)
+
+- The closed-form params/MACs of a pruned Conv2Net(k1, k2) reproduce our measurements exactly: 183,434 params
+  and 40,894,484 FLOPs dense, and the grid rows.
+- **Table 1 (70% sparsity, 57.01% FLOPs↓) is infeasible.**
+  - For every (k1, k2) with 68–72% params↓, FLOPs↓ ≥ **65.3%** (the minimum, at k1 = 32, k2 = 20).
+  - Conversely, FLOPs↓ ≈ 57% allows at most **60.6%** params↓.
+  - Filter sparsity gives even higher FLOPs↓.
+  - So Table 1's "sparsity" is either an unstated definition or inconsistent with its FLOPs number.
+- **Table 5 (75.8% params↓, 82.7% FLOPs↓) matches exactly one configuration: k1 = 19, k2 = 16** (75.84%,
+  82.67%). The next-closest is off by about 0.9. So Table 5 uses parameter reduction, and the paper's best
+  ASF-S Conv2Net kept 19 conv1 and 16 conv2 filters. **This is the operating point step 8 reproduces.**
+
+## Finding 2: the τ grid is too coarse and cannot reach (19, 16)
+
+- With the skewed aligned PGI, the 9 thresholds give only 7 distinct kept counts per layer:
+  - conv1: {26, 16, 10, 5, 3, 2, 1}
+  - conv2: {54, 31, 18, 12, 6, 3, 1}
+- That makes 49 unique configurations. τ = 0.1 already removes 17% of parameters.
+- The gate's "nearest to Table 5" point, (1, 18), keeps a single conv1 filter (FLOPs↓ 98.3%). It matches the
+  parameter count only. **The nearest-point gate is a weak test and will be replaced in step 8** by top-k
+  selection at the paper's exact kept counts.
+
+## Finding 3: before fine-tuning, most pruned models are at chance
+
+- Almost every configuration collapses to about 10% (dense: 75.32%).
+- "PGI beats L1 in 71% / random in 57% of unique configs" therefore mostly compares chance-level numbers. It
+  is **not** evidence.
+- The informative rows (any method > 20%):
+
+| kept (conv1, conv2) | params↓ | FLOPs↓ | PGI | L1 | random |
+|---|---|---|---|---|---|
+| 26, 54 | 17.2 | 30.4 | **52.08** | 42.94 | 32.50 |
+| 16, 54 | 20.0 | 56.3 | 29.34 | **32.87** | 16.81 |
+| 26, 31 | 52.3 | 58.3 | 21.57 | **41.98** | 17.67 |
+| 26, 18 | 72.1 | 74.1 | **26.74** | 26.21 | 12.65 |
+
+- PGI is clearly better than random where the comparison is informative, and mixed against L1. Fine-tuning
+  (step 8) decides.
+
+## Step 7 (original variant): the authors' formula is worse than L1 before fine-tuning
+
+`./cifar10/run.sh 7 --variant original` (literal Eq. 12 prefix truncation, |mean|): gate **PASS**
+(prune == mask 1.1e-5; nearest points 69.94% and 78.39% params↓). 63 unique kept configurations.
+
+| τ | 0.1 | 0.2 | 0.3 | 0.4 | 0.5 | 0.6 | 0.7 | 0.8 | 0.9 |
+|---|---|---|---|---|---|---|---|---|---|
+| kept conv1, original | 24 | **19** | 12 | 6 | 4 | 4 | 3 | 2 | 2 |
+| kept conv2, original | 51 | 39 | 28 | 21 | 14 | 10 | 5 | 3 | 1 |
+| kept conv1, aligned | 26 | 16 | 10 | 5 | 3 | 2 | 2 | 1 | 1 |
+| kept conv2, aligned | 54 | 31 | 18 | 12 | 6 | 3 | 1 | 1 | 1 |
+
+Informative rows (any method > 20% before fine-tuning):
+
+| kept (conv1, conv2) | params↓ | FLOPs↓ | PGI (original) | L1 | random |
+|---|---|---|---|---|---|
+| 24, 51 | 22.3 | 38.9 | 28.05 | **42.36** | 24.80 |
+| 19, 51 | 23.7 | 51.2 | 23.03 | **27.97** | 17.63 |
+| 12, 51 | 25.5 | 68.4 | 14.15 | **21.58** | 13.95 |
+| 24, 39 | 40.5 | 52.4 | 21.80 | **33.72** | 18.20 |
+| 19, 39 | 41.6 | 62.0 | 16.32 | **27.28** | 16.43 |
+| 24, 28 | 57.2 | 64.8 | 22.46 | **31.62** | 17.00 |
+| 24, 21 | 67.8 | 72.7 | 10.17 | **22.55** | 14.55 |
+
+- **The authors' PGI loses to L1 on every informative row**, by 5–14 points, and is close to random (worse
+  than random at (24, 21)). This matches the cifar_100 finding that PGI ≈ random and L1 > PGI.
+- **The aligned variant does better** before fine-tuning: it beats L1 at (26, 54) and ties at (26, 18).
+- **Coincidence worth noting:** the original formula's τ = 0.2 keeps exactly **19** conv1 filters, the paper's
+  Table 5 conv1 count. Its conv2 counts (21 at τ = 0.4, 14 at τ = 0.5) bracket the paper's 16. A different
+  trained model shifts these counts, so this is consistent with the authors using the literal formula with
+  τ₁ = 0.2, but it is weak evidence.
+- Pre-fine-tuning accuracy is not the paper's metric; step 8 decides.
+
+## Plan for step 8 (to agree)
+
+- **Main comparison at the paper's point (19, 16).** Top-k selection by aligned PGI, original PGI, L1, L2 and
+  random (3 draws). FC-only fine-tuning (b) and full fine-tuning (a). Target: ΔAcc −3.78 (Table 5).
+- **Plus the τ grid's unique configs** (49, aligned) with FC-only fine-tuning, for the Fig. 6-style Pareto
+  plot.
+
+---
+
 # 2026-10-20 — Server results imported; figure review and a step 1 correction
 
 Pulled to this machine with
