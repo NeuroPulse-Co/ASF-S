@@ -7,6 +7,10 @@ Reads W from step 3 and computes g = PG1 with config.PG_MODE ("paper"), and also
 Gate (the failure modes found on CIFAR-100, run 01):
   1. every PG1 is finite and unit length ("paper" mode)
   2. no PG1 is degenerate: ≥ 3 distinct values (the S = 1 collapse gave 1–2 values)
+  3. W is connected: λ1 − λ2 > 1e-3 in every group (disconnected pieces each add λ = 1)
+  4. v2 is unique: λ2 − λ3 > 1e-3 in every group (otherwise eigh returns an arbitrary
+     vector of a repeated eigenspace). Checks 3–4 were added after run01 passed 1–2 with
+     λ1 = λ2 = λ3 = 1 everywhere at σ = 0.1 (see LOG.md).
 Info: λ1 − λ2 (≈ 0 when W splits into disconnected pieces), λ2 − λ3 (≈ 0 makes v2
 unstable), participation ratio PR = 1/Σg⁴ (1 = PG1 sits on one unit, N = spread over all),
 |cos| between paper and legacy PG1, W connectivity (from step 3).
@@ -20,6 +24,7 @@ from asfs.afc import connectivity
 from asfs.pg import pg1
 
 SPLITS = ("correct", "incorrect")
+GAP_MIN = 1e-3
 AUTO, DOG, TRUCK = 1, 5, 9
 
 
@@ -74,9 +79,11 @@ def main():
         check("all PG1 finite and unit length", round(float(np.abs(norms - 1).max()), 8), 0.0, tolerance=1e-6,
               ok=bool(np.isfinite(g).all() and np.allclose(norms, 1, atol=1e-6))),
         check("min distinct values per PG1 ≥ 3", int(distinct.min()), 3, ok=distinct.min() >= 3),
+        check("W connected: min λ1 − λ2 > 1e-3", round(float(gap12.min()), 6), GAP_MIN, ok=gap12.min() > GAP_MIN),
+        check("v2 unique: min λ2 − λ3 > 1e-3", round(float(gap.min()), 6), GAP_MIN, ok=gap.min() > GAP_MIN),
     ]
     write_gate(out, "step4_pg1", args, checks, info={
-        "mode": C.PG_MODE, "alpha": C.ALPHA,
+        "mode": C.PG_MODE, "alpha": C.ALPHA, "sigma": C.SIGMA,
         "min_gap_12": round(float(gap12.min()), 5), "participation_min": round(float(pr.min()), 2),
         "participation_median": round(float(np.median(pr)), 2),
         "min_spectral_gap": round(float(gap.min()), 5), "median_spectral_gap": round(float(np.median(gap)), 5),

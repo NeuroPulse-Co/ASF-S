@@ -8,6 +8,53 @@ driver 535, torch 2.5.1+cu121.
 
 ---
 
+# 2026-10-20 — Step 4: at σ = 0.1, PG1 is not defined (repeated eigenvalue 1). Gate tightened
+
+## Run
+
+| | |
+|---|---|
+| Command | `./cifar10/run.sh 4` (paper mode, σ = 0.1, α = 0.5) |
+| Gate as written | PASS (unit length; ≥ 8 distinct values) |
+| Actual result | **invalid**: in all 20 groups, λ1 = λ2 = λ3 = 1.0000 (λ1 − λ2 = λ2 − λ3 = 0) |
+
+| | range over the 20 groups |
+|---|---|
+| W connectivity (off-diagonal > 0.01) | 0.067 – 0.356 |
+| participation ratio | 1.17 – 8.21 |
+| \|cos\| paper vs legacy PG1 | 0.000 – 0.992 |
+
+## Diagnosis
+
+- **The graph falls apart.** With σ = 0.1, W_ij = exp(−(1 − A_ij)²/0.02) drops below 0.01 as soon as the cosine
+  falls under about 0.7. Most unit pairs among the 10 output logits are below that, so each W splits into several
+  disconnected pieces. Every piece gives K an eigenvalue of exactly 1.
+- **So "v₂" is not unique.** It is an arbitrary vector in a repeated eigenspace, whatever `eigh` happens to
+  return. The erratic paper-vs-legacy agreement (0.000 to 0.992) and the erratic participation ratios show this.
+- **Reproduced locally** on synthetic structured activations: σ = 0.1 gives λ = (1, 1, 1); σ = 0.3 gives
+  (1, 0.994, 0.888); σ = 1.0 gives (1, 0.476, 0.208).
+- **The original scripts were also degenerate.** They used σ = 0.1 with S = 1: every cosine is ±1, so W is two
+  disconnected blocks, again with a repeated eigenvalue 1. The paper's PG1, and everything built on it, was
+  therefore very likely ill-defined. **This is a major reproduction finding.**
+
+## Changes
+
+- **Step 4 gate** gains two checks, in every group: λ1 − λ2 > 1e-3 (W connected) and λ2 − λ3 > 1e-3 (v₂
+  unique). run01 at σ = 0.1 now fails, correctly.
+- **`steps/diag_sigma.py`** (`./cifar10/run.sh diag_sigma`) sweeps σ ∈ {0.1, 0.2, 0.3, 0.5, 0.75, 1.0, median
+  rule}. For each it reports connectivity, the minimum eigen-gaps, the participation ratio, whether step 3's
+  Fig. 3 checks still hold, and **stability**: |cos| between PG1 built from two independent 50-image draws of the
+  same group. A PG1 that reflects the class should be stable; noise is not.
+
+## Decision pending
+
+- σ is not given in the paper, so we choose it from the sweep. Rule: the smallest σ for which all gaps are
+  > 1e-3 and stability is high, with the Fig. 3 checks still passing. Prefer the median rule if it qualifies, as
+  it is a standard choice rather than one tuned to our results.
+- The original σ = 0.1 stays available as a `legacy` reference, for reproducing the authors' run in step 6.
+
+---
+
 # 2026-10-20 — Step 3: AFC maps reproduce the paper's Fig. 3 similarity structure
 
 ## Run
