@@ -39,8 +39,11 @@ def plot(history, path):
 
 
 def main():
-    args = parse_args("step1_train", lambda ap: ap.add_argument(
-        "--max-epochs", type=int, default=None, help="override Table 3 (for smoke tests)"))
+    def extra(ap):
+        ap.add_argument("--max-epochs", type=int, default=None, help="override Table 3 (for smoke tests)")
+        ap.add_argument("--es-patience", type=int, default=C.EARLY_STOP_PATIENCE,
+                        help="early-stopping patience; the paper does not state it")
+    args = parse_args("step1_train", extra)
     seed_everything()
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
@@ -60,7 +63,7 @@ def main():
     opt = torch.optim.Adam(model.parameters(), lr=cfg["lr"], weight_decay=cfg["weight_decay"])
     sched = torch.optim.lr_scheduler.ReduceLROnPlateau(
         opt, mode="min", patience=C.PLATEAU_PATIENCE, factor=C.PLATEAU_FACTOR)
-    best, history = fit(model, train_dl, val_dl, opt, max_epochs, C.EARLY_STOP_PATIENCE,
+    best, history = fit(model, train_dl, val_dl, opt, max_epochs, args.es_patience,
                         monitor="val_loss", scheduler=sched)
 
     torch.save(model.state_dict(), out / "model_best.pth")
@@ -76,7 +79,9 @@ def main():
         "best_epoch": best["epoch"], "epochs_run": len(history), "best_val_loss": round(best["val_loss"], 4),
         "best_val_acc": round(best["val_acc"], 2), "test_ece": test_ece,
         "minutes": round(sum(h["seconds"] for h in history) / 60, 1),
-        "val_is_test": splits["val"] is splits["test"]})
+        "val_is_test": splits["val"] is splits["test"], "es_patience": args.es_patience,
+        "backend": args.backend,
+        "lr_drops_at": [h["epoch"] for p, h in zip(history, history[1:]) if h["lr"] < p["lr"]]})
 
 
 if __name__ == "__main__":
