@@ -82,6 +82,9 @@ def prune(model, keep):
             if fc.bias is not None:
                 nfc.bias.copy_(fc.bias)
             setattr(m, m.FC_AFTER_CONV, nfc)
+    # New modules start in training mode; a train-mode BN normalises with batch statistics
+    # instead of the copied running ones. Match the source model's mode.
+    m.train(model.training)
     return m
 
 

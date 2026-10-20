@@ -46,6 +46,15 @@ def test_keep_all_is_identity():
         torch.testing.assert_close(prune(m, keep)(x), m(x), atol=0, rtol=0)
 
 
+@pytest.mark.parametrize("mode", ["eval", "train"])
+def test_pruned_model_keeps_train_eval_mode(mode):
+    m = model_with_bn_stats()
+    m.train(mode == "train")
+    keep = random_keep(m, 0.5)
+    p = prune(m, keep)
+    assert all(mod.training == (mode == "train") for mod in p.modules())
+
+
 def test_pruned_shapes_and_params():
     m = model_with_bn_stats()
     keep = {"conv1": np.arange(32) < 10, "conv2": np.arange(64) < 20}

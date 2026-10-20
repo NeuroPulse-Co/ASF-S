@@ -87,6 +87,13 @@ The server resolves over Tailscale. Checkpoints and `.npz` stay on the server.
   counts, params/FLOPs reduction, filter reduction and accuracy before fine-tuning. It also records **L1 and
   random selections at the same kept counts**: an early answer to whether PGI picks better filters, with no
   fine-tuning needed.
+- **Bug caught by the tests before any run.** 7 of 56 tests failed, including "keep every filter == original".
+  `prune` built fresh `BatchNorm2d` modules, which start in *training* mode and so normalise with batch
+  statistics instead of the copied running ones. Fix: `prune` now sets the pruned model to the source model's
+  train/eval mode, and a new test checks this.
+  - Step 7's accuracies would have been unaffected, because `predict()` calls `.eval()` first.
+  - Step 8 is affected: fine-tuning toggles train/eval, and BN mode decides what an FC-only fine-tune
+    actually updates. So this had to be fixed now.
 - **Gate:** prune == mask; grid points exist within ±5 of 70% (Table 1) and 75.8% (Table 5) parameter
   reduction. Their FLOPs reductions are compared with the paper's 57.01% and 82.7%. This also tests what the
   paper means by "sparsity": parameters or filters.
