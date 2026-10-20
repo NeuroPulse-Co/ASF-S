@@ -1,0 +1,8 @@
+# torch / torchvision are installed by setup.sh from the wheel index matching the driver
+numpy
+scipy
+scikit-learn
+ptflops
+matplotlib
+pillow
+pytest
