@@ -15,8 +15,12 @@ aligned PGI (config.PGI_MODE), with the original PGI reported alongside:
   1. ΔAcc ≥ paper − 2 (one-sided: a smaller drop than the paper's is not a failure)
   2. PGI ≥ L1 and 3. PGI ≥ mean of random (the paper's claim that PGI is the better criterion)
 
-Results are appended to results.csv after each run, and finished runs are skipped on
-restart, so a killed session loses at most one run.
+--ft-seeds 42,43,44 repeats each fine-tune with those seeds (pruning selection unchanged), to
+separate method differences from run-to-run noise; --methods restricts which selections run.
+Tables and the gate use the mean over seeds.
+
+Results are appended to results.csv after each run, and finished runs (scope, method, mode,
+kept counts, ft_seed) are skipped on restart, so a killed session loses at most one run.
 Outputs: results.csv, fig6_pareto.png, gate.json.
 """
 
@@ -34,7 +38,7 @@ from asfs.finetune import finetune
 from asfs.metrics import accuracy, count_flops, count_params, ece, predict
 from asfs.prune import keep_top_k, prune
 
-FIELDS = ["scope", "method", "ft_mode", "kept_conv1", "kept_conv2", "params", "flops", "params_red",
+FIELDS = ["scope", "method", "ft_mode", "ft_seed", "kept_conv1", "kept_conv2", "params", "flops", "params_red",
           "flops_red", "pre_acc", "best_val_acc", "best_epoch", "epochs", "test_acc", "test_ece",
           "d_acc", "minutes"]
 
@@ -53,11 +57,30 @@ def scores_by_method(model, args):
     return s
 
 
+def migrate(path):
+    """results.csv from before --ft-seeds has no ft_seed column; those runs used seed C.SEED."""
+    if not path.exists():
+        return
+    with open(path) as f:
+        reader = csv.DictReader(f)
+        if "ft_seed" in reader.fieldnames:
+            return
+        rows = [{**r, "ft_seed": C.SEED} for r in reader]
+    with open(path, "w", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=FIELDS)
+        w.writeheader(); w.writerows(rows)
+    print(f"migrated {len(rows)} rows of {path.name}: added ft_seed = {C.SEED}")
+
+
+def key(scope, method, mode, ft_seed, k1, k2):
+    return (scope, method, mode, int(ft_seed), int(k1), int(k2))
+
+
 def done_keys(path):
     if not path.exists():
         return set()
     with open(path) as f:
-        return {(r["scope"], r["method"], r["ft_mode"], int(r["kept_conv1"]), int(r["kept_conv2"]))
+        return {key(r["scope"], r["method"], r["ft_mode"], r["ft_seed"], r["kept_conv1"], r["kept_conv2"])
                 for r in csv.DictReader(f)}
 
 
@@ -70,7 +93,7 @@ def append(path, row):
         w.writerow(row)
 
 
-def run_one(args, model, keep, ft_mode, splits, device, base_acc, base_params, base_flops):
+def run_one(args, model, keep, ft_mode, ft_seed, splits, device, base_acc, base_params, base_flops):
     pm = prune(model, keep)
     cpu = copy.deepcopy(pm).cpu()
     params, flops = count_params(cpu), count_flops(cpu)
@@ -78,9 +101,9 @@ def run_one(args, model, keep, ft_mode, splits, device, base_acc, base_params, b
     test = data.loader(splits["test"], 1000, False, device, args.backend)
     pre_acc = accuracy(*predict(pm, val))
 
-    seed_everything(args.seed)
+    seed_everything(ft_seed)
     cfg = C.FINETUNE
-    train = data.loader(splits["train"], cfg["batch_size"], True, device, args.backend, args.seed)
+    train = data.loader(splits["train"], cfg["batch_size"], True, device, args.backend, ft_seed)
     best, hist = finetune(pm, ft_mode, train, val, cfg["lr"], args.max_epochs or cfg["max_epochs"],
                           cfg["patience"])
     logits, labels = predict(pm, test)
@@ -130,6 +153,9 @@ def main():
         ap.add_argument("--grid-variant", default="aligned", choices=["aligned", "original", "primary"])
         ap.add_argument("--ft-modes", default="fc,fc_frozen,full", help="paper scope fine-tuning modes")
         ap.add_argument("--random-draws", type=int, default=3)
+        ap.add_argument("--ft-seeds", default=None, help="comma-separated fine-tuning seeds (default: --seed)")
+        ap.add_argument("--methods", default=None,
+                        help="comma-separated subset, e.g. pgi_aligned,pgi_original,l1,l2 (default: all)")
         ap.add_argument("--max-epochs", type=int, default=None, help="override (smoke tests)")
     args = parse_args("step8_finetune", extra)
     if args.model != "conv2net":
@@ -138,7 +164,9 @@ def main():
     device = torch.device(args.device)
     out = step_dir(args, "step8_finetune")
     csv_path = out / "results.csv"
+    migrate(csv_path)
     done = done_keys(csv_path)
+    ft_seeds = [int(x) for x in (args.ft_seeds or str(args.seed)).split(",")]
 
     model = models.build(args.model).to(device)
     model.load_state_dict(torch.load(run_dir(args) / "step1_train" / "model_best.pth",
@@ -150,29 +178,36 @@ def main():
     base_params, base_flops = count_params(cpu), count_flops(cpu)
     layers = [c for c, _, _ in model.CONV_SEQ]
     scores = scores_by_method(model, args)
+    methods = list(scores) if args.methods is None else args.methods.split(",")
+    unknown = set(methods) - set(scores)
+    if unknown:
+        raise SystemExit(f"unknown --methods {sorted(unknown)}; choose from {list(scores)}")
     print(f"dense test acc {base_acc:.2f}   results → {csv_path}")
 
     jobs = []
     if args.scope in ("paper", "all"):
         k = P.TABLE5_ASFS_KEPT[args.model]
-        for method in scores:
+        for method in methods:
             for mode in args.ft_modes.split(","):
-                jobs.append(("paper", method, mode, {c: keep_top_k(scores[method][c], k[c]) for c in layers}))
+                for sd in ft_seeds:
+                    jobs.append(("paper", method, mode, sd,
+                                 {c: keep_top_k(scores[method][c], k[c]) for c in layers}))
     if args.scope in ("grid", "all"):
         with open(run_dir(args) / f"step7_prune_grid_{args.grid_variant}" / "grid.csv") as f:
             counts = sorted({(int(r["kept_conv1"]), int(r["kept_conv2"])) for r in csv.DictReader(f)})
         pgi = scores[f"pgi_{args.grid_variant}"] if args.grid_variant != "primary" else scores["pgi_aligned"]
         for k1, k2 in counts:
-            jobs.append(("grid", f"pgi_{args.grid_variant}", "fc",
-                         {"conv1": keep_top_k(pgi["conv1"], k1), "conv2": keep_top_k(pgi["conv2"], k2)}))
+            for sd in ft_seeds:
+                jobs.append(("grid", f"pgi_{args.grid_variant}", "fc", sd,
+                             {"conv1": keep_top_k(pgi["conv1"], k1), "conv2": keep_top_k(pgi["conv2"], k2)}))
 
-    todo = [j for j in jobs if (j[0], j[1], j[2], int(j[3]["conv1"].sum()), int(j[3]["conv2"].sum())) not in done]
+    todo = [j for j in jobs if key(*j[:4], j[4]["conv1"].sum(), j[4]["conv2"].sum()) not in done]
     print(f"{len(jobs)} runs planned, {len(jobs) - len(todo)} already done, {len(todo)} to go")
-    for i, (scope, method, mode, keep) in enumerate(todo, 1):
-        r = run_one(args, model, keep, mode, splits, device, base_acc, base_params, base_flops)
-        row = {"scope": scope, "method": method, "ft_mode": mode, **r}
+    for i, (scope, method, mode, sd, keep) in enumerate(todo, 1):
+        r = run_one(args, model, keep, mode, sd, splits, device, base_acc, base_params, base_flops)
+        row = {"scope": scope, "method": method, "ft_mode": mode, "ft_seed": sd, **r}
         append(csv_path, row)
-        print(f"[{i}/{len(todo)}] {scope:5s} {method:13s} {mode:9s} kept ({r['kept_conv1']},{r['kept_conv2']}) "
+        print(f"[{i}/{len(todo)}] {scope:5s} {method:13s} {mode:9s} seed {sd} kept ({r['kept_conv1']},{r['kept_conv2']}) "
               f"params↓ {r['params_red']:5.1f}%  pre {r['pre_acc']:5.2f} → test {r['test_acc']:5.2f} "
               f"(Δ {r['d_acc']:+.2f}, ep {r['best_epoch']}/{r['epochs']}, {r['minutes']} min)", flush=True)
 
@@ -180,15 +215,24 @@ def main():
         rows = list(csv.DictReader(f))
     plot(rows, base_acc, out / "fig6_pareto.png")
 
-    paper = {(r["method"], r["ft_mode"]): float(r["d_acc"]) for r in rows if r["scope"] == "paper"}
-    if not paper:
+    runs = {}
+    for r in rows:
+        if r["scope"] == "paper":
+            runs.setdefault((r["method"], r["ft_mode"]), []).append(float(r["d_acc"]))
+    if not runs:
         return
-    print("\nPaper point (19, 16) — ΔAcc vs dense:")
-    methods = sorted({m for m, _ in paper})
+    paper = {k: float(np.mean(v)) for k, v in runs.items()}
+    print("\nPaper point (19, 16) — ΔAcc vs dense, mean ± sd over fine-tuning seeds (n):")
+    all_methods = sorted({m for m, _ in paper})
     modes = sorted({md for _, md in paper})
-    print(f"  {'method':14s}" + "".join(f"{md:>11s}" for md in modes))
-    for m in methods:
-        print(f"  {m:14s}" + "".join(f"{paper.get((m, md), float('nan')):11.2f}" for md in modes))
+    print(f"  {'method':14s}" + "".join(f"{md:>20s}" for md in modes))
+    for m in all_methods:
+        cells = []
+        for md in modes:
+            v = runs.get((m, md))
+            cells.append(f"{np.mean(v):7.2f} ± {np.std(v, ddof=1) if len(v) > 1 else 0:4.2f} ({len(v)})"
+                         if v else f"{'':>20s}")
+        print(f"  {m:14s}" + "".join(f"{c:>20s}" for c in cells))
 
     target = P.TABLE5[args.model]["asfs"]["d_acc"]
     primary = f"pgi_{C.PGI_MODE}" if C.PGI_MODE in ("aligned", "original") else "pgi_aligned"
@@ -203,7 +247,8 @@ def main():
         ]
     write_gate(out, "step8_finetune", args, checks, info={
         "base_test_acc": round(base_acc, 2), "paper_target_d_acc": target,
-        "paper_point": {f"{m}|{md}": v for (m, md), v in paper.items()},
+        "paper_point_mean": {f"{m}|{md}": round(v, 2) for (m, md), v in paper.items()},
+        "paper_point_runs": {f"{m}|{md}": v for (m, md), v in runs.items()},
         "random_fc_mean": round(float(rand), 2),
         "grid_runs": sum(r["scope"] == "grid" for r in rows)})
 

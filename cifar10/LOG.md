@@ -8,6 +8,73 @@ driver 535, torch 2.5.1+cu121.
 
 ---
 
+# 2026-10-21 — Step 8 (paper point): FC-only recovery does not reproduce; full fine-tuning nearly does
+
+## Run
+
+| | |
+|---|---|
+| Command | `./cifar10/run.sh 8 --scope paper` (21 runs, about 65 min) |
+| Point | (19, 16) kept filters: params↓ 75.8%, FLOPs↓ 82.7% (Table 5's exact configuration) |
+| Dense | 75.32% test |
+| Gate | **FAIL** on reproduction (aligned, fc: −10.47 vs paper −3.78 ± 2). PASS on PGI ≥ L1 and PGI ≥ random |
+
+ΔAcc vs dense (test accuracy, percentage points):
+
+| method | fc | fc_frozen | full |
+|---|---|---|---|
+| **pgi_aligned** | **−10.47** | −11.13 | **−4.61** |
+| pgi_original (authors' formula) | −14.89 | −16.54 | −5.38 |
+| l1 | −11.95 | −11.66 | −5.11 |
+| l2 | −12.36 | −10.57 | −4.87 |
+| random, mean of 3 (sd) | −15.07 (0.55) | −15.15 (0.79) | −6.30 (0.48) |
+| *paper Table 5, ASF-S* | | | *−3.78 (mode not stated)* |
+
+Before fine-tuning, every model is at 10–14%, near chance. At this sparsity, accuracy before fine-tuning says
+nothing about the selection.
+
+## Findings
+
+1. **The paper's headline claim does not reproduce.** The claim is that fine-tuning only the output layer
+   recovers baseline accuracy. The best FC-only result is −10.47 points (aligned PGI). That is a 13.9% relative
+   drop, against "100% of baseline performance at sparsity of up to 70%" (§1). The paper's weaker conclusion,
+   "within 10% of baseline", holds at most for aligned PGI in absolute points (−10.47) and fails for the
+   authors' formula (−14.89).
+2. **With full fine-tuning the numbers come close to Table 5.** Aligned PGI: −4.61 (0.83 from −3.78).
+   Authors' formula: −5.38 (1.60 from −3.78, inside the ±2 tolerance).
+   - Table 5 never states its fine-tuning mode. The original `min_scripts/pg_pruning_conv2.py` fine-tunes the
+     **whole model** (finding #7 on cifar_100), so Table 5's −3.78 was most likely produced with full
+     fine-tuning, i.e. ASF-S(a), not the FC-only (b) the paper emphasises.
+   - Read that way, Table 5 roughly reproduces. The FC-only claim does not.
+3. **The authors' PGI formula is no better than random under FC-only fine-tuning** (−14.89 vs random
+   −15.07 ± 0.55). This matches the cifar_100 result. Under full fine-tuning it sits between L1 and random.
+4. **Aligned PGI is the best criterion in every mode except fc_frozen,** but by small margins:
+   - fc: +1.48 over L1, +4.6 over random
+   - full: +0.26 over L2, +0.50 over L1, +1.7 over random
+
+   With one run per method and random's spread of about 0.5–0.8 sd, the margin over L1/L2 is at noise level
+   for full and about 2–3 sd for fc. **It needs repeat seeds before it can be claimed.**
+5. **BatchNorm re-estimation is not what drives FC-only recovery.** fc − fc_frozen ranges from −1.79 to
+   +1.65, with no consistent sign: run-to-run noise of about ±1.
+6. **Full fine-tuning compresses the differences between methods** to a 2.2-point range (−4.61 to −6.82). The
+   choice of filters matters much less once the remaining convs can retrain, as is common in the pruning
+   literature.
+
+## Next
+
+- [ ] `--scope grid` (49 runs, about 2.5 h): the fc accuracy-vs-sparsity curve, and the ~72% point (26, 18) to
+  compare with Table 1's Acc↓ 7.74
+- [ ] Repeat seeds at (19, 16) for aligned, original, L1 and L2 (fc and full), to tell whether "aligned >
+  L1/L2" is real. **Added:** `--ft-seeds` and `--methods` on step 8.
+  - `ft_seed` is now part of each run's identity in `results.csv`. Older files are migrated in place: existing
+    rows get ft_seed = 42.
+  - The pruning selection is unchanged across seeds; only fine-tuning randomness varies.
+  - The tables and the gate report mean ± sd over seeds.
+  - Command: `./cifar10/run.sh 8 --scope paper --ft-seeds 42,43,44 --methods pgi_aligned,pgi_original,l1,l2
+    --ft-modes fc,full`. The seed-42 runs already exist, so 16 new runs, about 1 h.
+
+---
+
 # 2026-10-20 — Step 7 (aligned): the paper's Table 5 point is exactly (19, 16) kept filters; Table 1's is impossible
 
 ## Run
