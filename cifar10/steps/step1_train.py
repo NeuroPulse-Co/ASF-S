@@ -44,7 +44,7 @@ def main():
         ap.add_argument("--es-patience", type=int, default=C.EARLY_STOP_PATIENCE,
                         help="early-stopping patience; the paper does not state it")
     args = parse_args("step1_train", extra)
-    seed_everything()
+    seed_everything(args.seed)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
     device = torch.device(args.device)
@@ -53,9 +53,9 @@ def main():
     max_epochs = args.max_epochs or cfg["max_epochs"]
 
     splits = data.get_splits(args.protocol)
-    train_dl = data.loader(splits["train"], cfg["batch_size"], True, device, args.backend)
-    val_dl = data.loader(splits["val"], cfg["batch_size"], False, device, args.backend)
-    test_dl = data.loader(splits["test"], cfg["batch_size"], False, device, args.backend)
+    train_dl = data.loader(splits["train"], cfg["batch_size"], True, device, args.backend, args.seed)
+    val_dl = data.loader(splits["val"], cfg["batch_size"], False, device, args.backend, args.seed)
+    test_dl = data.loader(splits["test"], cfg["batch_size"], False, device, args.backend, args.seed)
     print(f"train {len(splits['train'])} ({splits['train'].name})  val {len(splits['val'])} "
           f"({splits['val'].name})  test {len(splits['test'])}  device {device}")
 
@@ -80,7 +80,7 @@ def main():
         "best_val_acc": round(best["val_acc"], 2), "test_ece": test_ece,
         "minutes": round(sum(h["seconds"] for h in history) / 60, 1),
         "val_is_test": splits["val"] is splits["test"], "es_patience": args.es_patience,
-        "backend": args.backend,
+        "backend": args.backend, "seed": args.seed,
         "lr_drops_at": [h["epoch"] for p, h in zip(history, history[1:]) if h["lr"] < p["lr"]]})
 
 

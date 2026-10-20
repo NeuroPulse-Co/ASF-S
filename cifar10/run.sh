@@ -5,6 +5,7 @@
 #   ./cifar10/run.sh test                              # pytest, all steps so far
 #   ./cifar10/run.sh 0                                 # step 0, paper protocol, run01
 #   ./cifar10/run.sh 1 --protocol clean --run-id run02
+#   ./cifar10/run.sh diag_aug_parity                   # any steps/<name>.py by name
 #   GPU=1 ./cifar10/run.sh 1                           # pick a GPU
 #
 # Extra arguments go to the step script. Logs: cifar10/outputs/<run-id>/logs/.
@@ -22,7 +23,7 @@ if [[ "$STEP" == test ]]; then
   exec "$PY" -m pytest -q "$HERE/tests" "$@"
 fi
 
-SCRIPT=$(ls "$HERE"/steps/step"${STEP}"_*.py 2>/dev/null | head -1)
+SCRIPT=$(ls "$HERE"/steps/step"${STEP}"_*.py "$HERE"/steps/"${STEP}".py 2>/dev/null | head -1)
 [[ -n "$SCRIPT" ]] || { echo "no script for step $STEP" >&2; exit 1; }
 
 RUN_ID=run01

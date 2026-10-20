@@ -181,22 +181,39 @@ def rotate(x, deg):
 def gpu_augment(x, gen=None):
     """
     x: (B, 3, 32, 32) float in [0, 1]. Returns the augmented batch, same shape.
-    Every random parameter is drawn per sample. ColorJitter applies its four ops in a
-    random order, as torchvision does; here that order is drawn once per batch.
+    Every random parameter is drawn per sample, including ColorJitter's random order of
+    its four ops (as torchvision draws a new order for every image).
     """
     B, dev, j = x.shape[0], x.device, C.JITTER
     x = hflip(x, torch.rand(B, device=dev, generator=gen) < 0.5)
     x = crop(x, *(torch.randint(0, 2 * C.CROP_PAD + 1, (B,), device=dev, generator=gen)
                   for _ in range(2)))
-    jitter = [
-        lambda x: adjust_brightness(x, _uniform(B, 1 - j["brightness"], 1 + j["brightness"], dev, gen)),
-        lambda x: adjust_contrast(x, _uniform(B, 1 - j["contrast"], 1 + j["contrast"], dev, gen)),
-        lambda x: adjust_saturation(x, _uniform(B, 1 - j["saturation"], 1 + j["saturation"], dev, gen)),
-        lambda x: adjust_hue(x, _uniform(B, -j["hue"], j["hue"], dev, gen)),
-    ]
-    for op in torch.randperm(4, device=dev, generator=gen).tolist():
-        x = jitter[op](x)
+    factors = [_uniform(B, 1 - j["brightness"], 1 + j["brightness"], dev, gen),
+               _uniform(B, 1 - j["contrast"], 1 + j["contrast"], dev, gen),
+               _uniform(B, 1 - j["saturation"], 1 + j["saturation"], dev, gen),
+               _uniform(B, -j["hue"], j["hue"], dev, gen)]
+    order = torch.rand(B, 4, device=dev, generator=gen).argsort(1)
+    x = color_jitter(x, factors, order)
     return rotate(x, _uniform(B, -C.ROTATION, C.ROTATION, dev, gen))
+
+
+JITTER_OPS = [adjust_brightness, adjust_contrast, adjust_saturation, adjust_hue]
+
+
+def color_jitter(x, factors, order):
+    """
+    factors: 4 tensors (B,) for brightness, contrast, saturation, hue.
+    order:   (B, 4) long; row b is the op sequence for sample b (a permutation of 0..3).
+    """
+    B = x.shape[0]
+    for r in range(4):
+        out = x
+        for k, (op, f) in enumerate(zip(JITTER_OPS, factors)):
+            sel = order[:, r] == k
+            if sel.any():
+                out = torch.where(sel.view(B, 1, 1, 1), op(x, f), out)
+        x = out
+    return x
 
 
 def normalize(x):

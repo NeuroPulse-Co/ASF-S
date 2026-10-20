@@ -28,6 +28,7 @@ def parse_args(step_name, extra=None):
     ap.add_argument("--protocol", default=C.PROTOCOL, choices=["paper", "clean"])
     ap.add_argument("--backend", default=C.AUGMENT_BACKEND, choices=["gpu", "torchvision"])
     ap.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
+    ap.add_argument("--seed", type=int, default=C.SEED, help="weights init, shuffling and augmentation")
     if extra:
         extra(ap)
     return ap.parse_args()

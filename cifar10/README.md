@@ -4,6 +4,8 @@ This directory is a from-scratch implementation of ASF-S (the seed paper) on the
 Conv2Net. Each step implements one part of the method. Each step ends with a **gate**: its output is checked against
 a number or figure from the paper before the next step starts.
 
+Decisions, run records and findings are in [`LOG.md`](LOG.md), newest first.
+
 It is standalone: nothing here imports from `cifar100/` or `min_scripts/`. The original CIFAR-10 scripts in
 `min_scripts/` serve only as the specification for the `legacy` / `literal` modes, which reproduce what the authors
 most likely ran.
@@ -24,7 +26,7 @@ most likely ran.
 | Step | What | Gate (paper) | Status |
 |---|---|---|---|
 | 0 | Model, data pipeline, metrics | params 183K, FLOPs 40.89M (Table 4); split sizes | **PASS**: 183,434 params, 40,894,484 FLOPs; 3.5 s/epoch (gpu) vs 8.3 (torchvision) |
-| 1 | Train Conv2Net (Table 3 recipe) | test acc 72.69% ± 1.5 (Table 4) | code ready |
+| 1 | Train Conv2Net (Table 3 recipe) | test acc 72.69% ± 1.5 (Table 4) | **FAIL (high)**: 76.53%; diagnosing, see LOG |
 | 2 | Output-layer activations, correct / incorrect | ≥ S samples per (class, split) | |
 | 3 | AFC matrix W, Eq. 2–3 | Fig. 3: truck ≈ automobile ≠ dog | |
 | 4 | PG1, Eq. 5–8 | unit tests; Fig. 4 | |

@@ -44,7 +44,7 @@ def main():
     args = parse_args("step0_check_arch", lambda ap: ap.add_argument(
         "--bench-batches", type=int, default=60,
         help="batches timed for the torchvision backend (extrapolated to an epoch)"))
-    seed_everything()
+    seed_everything(args.seed)
     device = torch.device(args.device)
     out = step_dir(args, "step0_check_arch")
 

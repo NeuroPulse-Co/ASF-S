@@ -81,6 +81,19 @@ def test_color_ops(img, ours, theirs, factors):
         torch.testing.assert_close(out[i], theirs(img[i], f), atol=1e-5, rtol=0)
 
 
+def test_color_jitter_per_sample_order(img):
+    factors = [torch.tensor([0.8, 1.2, 0.9, 1.1]), torch.tensor([1.2, 0.8, 1.1, 0.9]),
+               torch.tensor([0.8, 1.2, 1.2, 0.8]), torch.tensor([0.1, -0.1, 0.05, -0.05])]
+    order = torch.tensor([[0, 1, 2, 3], [3, 2, 1, 0], [1, 3, 0, 2], [2, 0, 3, 1]])
+    tv = [TF.adjust_brightness, TF.adjust_contrast, TF.adjust_saturation, TF.adjust_hue]
+    out = data.color_jitter(img, factors, order)
+    for b in range(4):
+        ref = img[b]
+        for k in order[b].tolist():
+            ref = tv[k](ref, float(factors[k][b]))
+        torch.testing.assert_close(out[b], ref, atol=1e-5, rtol=0)
+
+
 def test_hsv_roundtrip(img):
     torch.testing.assert_close(data._hsv2rgb(data._rgb2hsv(img)), img, atol=1e-5, rtol=0)
 
