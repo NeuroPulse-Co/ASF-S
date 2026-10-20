@@ -8,6 +8,50 @@ driver 535, torch 2.5.1+cu121.
 
 ---
 
+# 2026-10-20 — Step 3: AFC maps reproduce the paper's Fig. 3 similarity structure
+
+## Run
+
+| | |
+|---|---|
+| Command | `./cifar10/run.sh 3` |
+| Setup | S = 50 per (class, split), drawn with seed 42 from step 2. σ = 0.1, ε = 1e-6. 10 output units → W is 10×10 |
+| Result | **PASS** on both checks (correct-split maps, Frobenius distance) |
+
+| | W (σ = 0.1) | A (cosine, no kernel) |
+|---|---|---|
+| d(truck, automobile) | **1.085** | **1.998** |
+| d(truck, dog) | 2.369 | 8.532 |
+| d(automobile, dog) | 2.699 | 8.573 |
+| mean within {vehicles}, {animals} | **1.290** | **5.731** |
+| mean between vehicles and animals | 2.452 | 7.710 |
+
+## Notes
+
+- **The paper's §5.2 / Fig. 3 claim holds clearly.** Semantically similar classes have similar maps: truck and
+  automobile are 2.2–2.5× closer to each other than to dog. The vehicle/animal grouping (App. C.3) separates
+  about 2× as well.
+- **The structure is already in A,** before the Gaussian kernel. It is not an artefact of σ.
+- **Still to record:** W connectivity, i.e. how much of W survives σ = 0.1 (in `gate.json` → `info`). Step 4
+  depends on it: a W close to εI gives meaningless eigenvectors.
+
+## Step 4 prepared: PG1 (`asfs/pg.py`, `steps/step4_pg1.py`)
+
+- **`paper` mode:** `eigh` on the symmetric K = D^-α W D^-α, v₂ unit length, sign fixed so the largest-|·|
+  entry is positive.
+- **`legacy` mode:** the original computation. Row-normalised M, `eigh` on that non-symmetric matrix, and v₂
+  scaled by λ₂^0.5. Computed alongside for comparison.
+- **Found while testing locally:** for random activations with σ = 0.1, W ≈ εI and PG1 comes out **one-hot**
+  ([1, 0, …, 0]). So step 4 reports, per group:
+  - λ1 − λ2 (≈ 0 means a disconnected graph)
+  - λ2 − λ3 (≈ 0 means an unstable v₂)
+  - the participation ratio 1/Σg⁴ (1 = one-hot, 10 = spread over all units)
+  - W connectivity
+- **Gate:** every PG1 finite and unit length, with ≥ 3 distinct values. The distinct-values check catches the
+  S = 1 collapse and one-hot vectors. The participation ratio shows partial localization.
+
+---
+
 # 2026-10-20 — Step 2: output-layer activations, enough errors in every class
 
 ## Run
