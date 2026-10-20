@@ -26,9 +26,9 @@ most likely ran.
 | Step | What | Gate (paper) | Status |
 |---|---|---|---|
 | 0 | Model, data pipeline, metrics | params 183K, FLOPs 40.89M (Table 4); split sizes | **PASS**: 183,434 params, 40,894,484 FLOPs; 3.5 s/epoch (gpu) vs 8.3 (torchvision) |
-| 1 | Train Conv2Net (Table 3 recipe) | test acc ≥ 72.69% − 1.5 (Table 4), one-sided | about 3 points **above** the paper (74.8–76.5% over 4 runs); pipeline verified, see LOG |
-| 2 | Output-layer activations, correct / incorrect | ≥ S samples per (class, split) | code ready |
-| 3 | AFC matrix W, Eq. 2–3 | Fig. 3: truck ≈ automobile ≠ dog | |
+| 1 | Train Conv2Net (Table 3 recipe) | test acc ≥ 72.69% − 1.5 (Table 4), one-sided | **PASS**: run01 75.32% (canonical). About 3 points above the paper across 4 runs (74.8–76.5%); see LOG |
+| 2 | Output-layer activations, correct / incorrect | ≥ S samples per (class, split) | **PASS**: min 71 (automobile, incorrect); train-subset acc 77.69% |
+| 3 | AFC matrix W, Eq. 2–3 | Fig. 3: truck ≈ automobile ≠ dog; vehicles vs animals | code ready |
 | 4 | PG1, Eq. 5–8 | unit tests; Fig. 4 | |
 | 5 | Contrast + PCA, Eq. 9–11 | top-4 explained variance ≈ 90% (§C.3) | |
 | 6 | PGI, Eq. 12–13 (`literal` / `aligned`) | Fig. 11; PGI vs L1 / random rank correlation | |

@@ -48,7 +48,7 @@ def main():
 
     ckpt = run_dir(args) / "step1_train" / "model_best.pth"
     model = models.build(args.model).to(device)
-    model.load_state_dict(torch.load(ckpt, map_location=device))
+    model.load_state_dict(torch.load(ckpt, map_location=device, weights_only=True))
 
     split = data.get_splits(args.protocol)["pg"]
     dl = data.loader(split, 500, False, device, args.backend, args.seed)

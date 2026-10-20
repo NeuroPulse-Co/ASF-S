@@ -8,6 +8,41 @@ driver 535, torch 2.5.1+cu121.
 
 ---
 
+# 2026-10-20 — Step 2: output-layer activations, enough errors in every class
+
+## Run
+
+| | |
+|---|---|
+| Command | `./cifar10/run.sh 2` (paper protocol, run01 model) |
+| PG set | 1000 per class from the training set (`train-subset`), no augmentation |
+| Result | **PASS**. Smallest (class, split) group: 71 (automobile, incorrect), against S = 50 |
+
+| class | correct | incorrect |
+|---|---|---|
+| airplane | 816 | 184 |
+| automobile | 929 | **71** |
+| bird | 676 | 324 |
+| cat | 711 | 289 |
+| deer | 712 | 288 |
+| dog | 644 | 356 |
+| frog | 824 | 176 |
+| horse | 754 | 246 |
+| ship | 837 | 163 |
+| truck | 866 | 134 |
+
+## Notes
+
+- **Training-subset accuracy is 77.69%**, only 2.4 points above test (75.32%). The model does not overfit under
+  this augmentation, so its training-set errors are more numerous and less atypical than the protocol concern
+  assumed. The `clean`-protocol comparison is still worth running.
+- **Vehicles have the fewest errors and animals the most**, which is the usual CIFAR-10 pattern. This matters for
+  PG1: the vehicle "incorrect" groups contain only 71–184 images to choose the S = 50 from.
+- **Change:** `torch.load(..., weights_only=True)` for checkpoints. This removes the FutureWarning, and a
+  state_dict needs nothing more.
+
+---
+
 # 2026-10-20 — Step 1 diagnostic: the original torchvision pipeline is also above the paper
 
 ## Run
@@ -86,7 +121,8 @@ driver 535, torch 2.5.1+cu121.
 - [x] **Decision: the step 1 gate is now one-sided**: test acc ≥ paper − 1.5. Deviation recorded: our dense
   Conv2Net is reproducibly about 3 points stronger than the paper's. The likely causes are unreported training
   details: early-stopping patience (about 1.9 points of it), possibly dropout, and the seed.
-- [ ] Retrain run01 (seed 42) with the fixed jitter. This becomes the canonical dense model for steps 2–9.
+- [x] Retrained run01 (seed 42) with the fixed jitter: **75.32%**, step 1 gate **PASS** (one-sided). This is the
+  canonical dense model for steps 2–9: `outputs/run01/conv2net_paper/step1_train/model_best.pth`.
 
 ---
 
