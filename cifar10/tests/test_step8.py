@@ -59,8 +59,11 @@ def test_results_csv_migration_and_resume_keys(tmp_path, missing):
     p = tmp_path / "results.csv"
     with open(p, "w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=old); w.writeheader()
-        w.writerow({**{k: 0 for k in old}, "scope": "paper", "method": "l1", "ft_mode": "fc",
-                    "ft_seed": 42, "kept_conv1": 19, "kept_conv2": 16})
+        row = {**{k: 0 for k in old}, "scope": "paper", "method": "l1", "ft_mode": "fc",
+               "kept_conv1": 19, "kept_conv2": 16}
+        if "ft_seed" in old:
+            row["ft_seed"] = 42
+        w.writerow(row)
     migrate(p)
     migrate(p)                                                    # idempotent
     rows = list(csv.DictReader(open(p)))
