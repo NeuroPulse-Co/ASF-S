@@ -8,6 +8,61 @@ driver 535, torch 2.5.1+cu121.
 
 ---
 
+# 2026-10-21 — Step 8 grid: FC-only accuracy falls steadily with sparsity; ~72% point is close to Table 1
+
+## Run
+
+| | |
+|---|---|
+| Command | `./cifar10/run.sh 8 --scope grid` (aligned PGI, fc, seed 42), resumed after 2 done |
+| Runs | 47 new + 2 earlier = 49 unique kept-count configurations, 10:47 → about 13:20 |
+| Outputs | `results.csv` (37 paper + 49 grid rows), `fig6_pareto.png` |
+
+Selected points (ΔAcc vs dense 75.32; full table in `results.csv`):
+
+| kept (conv1, conv2) | params↓ | FLOPs↓ | before FT | after fc FT | ΔAcc |
+|---|---|---|---|---|---|
+| 26, 54 | 17.2 | 30.4 | 52.08 | 74.15 | **−1.17** |
+| 26, 31 | 52.3 | 58.3 | 21.57 | 70.48 | −4.84 |
+| 16, 31 | 54.0 | 73.8 | 12.71 | 67.77 | −7.55 |
+| **26, 18** | **72.1** | 74.1 | 26.74 | 66.66 | **−8.66** |
+| 16, 18 | 73.2 | 83.8 | 13.85 | 64.98 | −10.34 |
+| *(19, 16), paper scope, 3 seeds* | *75.8* | *82.7* | | | *−10.50* |
+| 26, 12 | 81.3 | 81.4 | 19.69 | 62.63 | −12.69 |
+| 26, 6 | 90.4 | 88.7 | 16.27 | 54.07 | −21.25 |
+| 26, 3 | 95.0 | 92.3 | 9.99 | 39.38 | −35.94 |
+
+## Findings
+
+1. **FC-only fine-tuning never returns to baseline.** Even the mildest grid point (17% params↓) loses 1.17
+   points, and the loss grows steadily with sparsity (−4.8 at 52%, −8.7 at 72%, −12.7 at 81%, −21 at 90%).
+   There is no plateau where accuracy stays at 100% of baseline, contrary to §1's "up to 70%".
+2. **The ~72% point is close to Table 1.** (26, 18): −8.66 vs Table 1's −7.74 at "70% sparsity", within
+   0.9 points, though Table 1's FLOPs figure (57%) cannot occur. So Table 1's *accuracy* for Conv2Net is
+   roughly reproducible with FC-only fine-tuning. It is Table 5's −3.78 at 75.8%, and the 100%-of-baseline
+   claim, that are not.
+3. **Pruning conv1 is what hurts FC-only recovery most.** At fixed conv2 = 54, going from 26 to 1 conv1 filter
+   takes ΔAcc from −1.17 to −21.15. Because conv2 is frozen, it cannot adapt to losing its inputs. Configurations
+   that keep most of conv1 dominate the accuracy-vs-params front.
+4. **The paper point is consistent with the grid.** (19, 16) at −10.50 sits between (26, 18) −8.66 and
+   (16, 18) −10.34, as expected from its kept counts.
+
+## Next (fairness checks before any redesign, ranked)
+
+- [ ] **FC-only learning rate:** try 1e-3 and 3e-3 for all methods at (19, 16). This is the one most likely to
+  move the headline gap. **Added:** `--ft-lrs` on step 8.
+  - `ft_lr` is now part of each run's identity in `results.csv`. Existing rows are migrated to 1e-4; this was
+    tested on a copy of the real file, where all 86 rows still count as done.
+  - Runs at the default rate keep their label (`fc`); others show as `fc@0.001`.
+  - The gate stays at the default rate, and the best rate per method is printed and stored.
+  - Command: `./cifar10/run.sh 8 --scope paper --ft-seeds 42 --ft-lrs 1e-3,3e-3 --ft-modes fc`. All 7 methods,
+    14 runs, about 35–40 min. One seed is enough to screen: seed sd under FC-only was ≤ 0.4.
+- [ ] **Fully original pipeline end to end:** S = 1, σ = 0.1, legacy PG1, literal PGI with |mean|, then prune
+  and fine-tune.
+- [ ] **A weaker dense model (~72.7%):** repeat (19, 16).
+
+---
+
 # 2026-10-21 — Step 8 seeds: aligned PGI's FC-only advantage is real; its full-FT advantage was noise
 
 ## Run
@@ -67,7 +122,7 @@ Per seed:
 ## Next
 
 - [x] Server: moved `cifar10/outputs` → `~/asfs_outputs`, set `ASFS_OUTPUTS`, restored the tracked copies, pulled `c5a75fa`
-- [ ] Resume `--scope grid` (2 of 49 configs done; about 2.4 h). **Running since 10:47 on 2026-10-21, writing to `~/asfs_outputs`**
+- [x] Grid finished (49/49), see the entry above
 - [ ] Laptop: rsync the seed and grid results, then commit
 
 ---

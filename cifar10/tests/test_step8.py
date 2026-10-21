@@ -51,19 +51,22 @@ def test_configure_trainable_sets():
     assert len(p) == len(list(m.parameters())) and all(x.requires_grad for x in p)
 
 
-def test_results_csv_migration_and_resume_keys(tmp_path):
+@pytest.mark.parametrize("missing", [("ft_seed", "ft_lr"), ("ft_lr",)])
+def test_results_csv_migration_and_resume_keys(tmp_path, missing):
     import csv
-    from step8_finetune import FIELDS, done_keys, key, migrate
-    old = [f for f in FIELDS if f != "ft_seed"]
+    from step8_finetune import FIELDS, done_keys, key, migrate, mode_label
+    old = [f for f in FIELDS if f not in missing]
     p = tmp_path / "results.csv"
     with open(p, "w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=old); w.writeheader()
         w.writerow({**{k: 0 for k in old}, "scope": "paper", "method": "l1", "ft_mode": "fc",
-                    "kept_conv1": 19, "kept_conv2": 16})
+                    "ft_seed": 42, "kept_conv1": 19, "kept_conv2": 16})
     migrate(p)
     migrate(p)                                                    # idempotent
     rows = list(csv.DictReader(open(p)))
-    assert len(rows) == 1 and rows[0]["ft_seed"] == "42"
+    assert len(rows) == 1 and rows[0]["ft_seed"] == "42" and float(rows[0]["ft_lr"]) == 1e-4
     done = done_keys(p)
-    assert key("paper", "l1", "fc", 42, 19, 16) in done
-    assert key("paper", "l1", "fc", 43, 19, 16) not in done
+    assert key("paper", "l1", "fc", 42, 1e-4, 19, 16) in done
+    assert key("paper", "l1", "fc", 43, 1e-4, 19, 16) not in done
+    assert key("paper", "l1", "fc", 42, 1e-3, 19, 16) not in done
+    assert mode_label("fc", 1e-4) == "fc" and mode_label("fc", 0.003) == "fc@0.003"

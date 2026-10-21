@@ -2,7 +2,7 @@
   "step": "step8_finetune",
   "model": "conv2net",
   "protocol": "paper",
-  "time": "2026-10-21 03:18:21",
+  "time": "2026-10-21 13:09:43",
   "pass": false,
   "checks": [
     {
@@ -15,7 +15,7 @@
     {
       "metric": "pgi_aligned fc \u0394Acc \u2265 L1",
       "ours": -10.5,
-      "paper": -11.993333333333332,
+      "paper": -11.99,
       "tolerance": null,
       "pass": true
     },
@@ -135,6 +135,6 @@
       ]
     },
     "random_fc_mean": -15.07,
-    "grid_runs": 2
+    "grid_runs": 49
   }
 }

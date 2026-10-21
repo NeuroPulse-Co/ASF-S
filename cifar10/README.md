@@ -46,7 +46,7 @@ Checkpoints and `.npz` files stay on the server. Logs are copied but gitignored.
 | 5 | Contrast + PCA, Eq. 9–11 | top-4 explained variance ≈ 90% (§C.3), ≥ 0.85 | **PASS**: 92.7% (paper ~90%); no sign flips needed |
 | 6 | PGI, Eq. 12–13 (`literal` / `aligned`) | Fig. 11; sanity (finite, [0,1], non-degenerate); ρ vs L1 norm | **PASS**: half of each layer < 0.2; aligned vs original ρ ≈ 0 (−0.16, +0.03) |
 | 7 | Prune, 9×9 τ grid | prune == mask; operating points of Tables 1 and 5 exist; pre-FT PGI vs L1/random | **PASS** (aligned). Table 5 point = exactly (19,16) kept; Table 1 point infeasible; grid too coarse to hit (19,16) |
-| 8 | Fine-tune: FC-only (b), full (a) | ΔAcc −3.78 at (19,16) kept = 75.8% params↓ (Table 5); PGI ≥ L1, random. Table 1 point infeasible | **FAIL (fc)**, 3 seeds: aligned −10.50, L1/L2 −11.9, original −15.00 ≈ random. Full FT: all ≈ −4.8 to −5.0 (original −5.61) vs paper −3.78. Grid pending |
+| 8 | Fine-tune: FC-only (b), full (a) | ΔAcc −3.78 at (19,16) kept = 75.8% params↓ (Table 5); PGI ≥ L1, random. Table 1 point infeasible | **FAIL (fc)**, 3 seeds: aligned −10.50, L1/L2 −11.9, original −15.00 ≈ random. Full FT: all ≈ −4.8 to −5.0 (original −5.61) vs paper −3.78. Grid (fc): −1.2 at 17%, −8.7 at 72% (Table 1: −7.74), −21 at 90% |
 | 9 | Baselines: random, L1, L2, top-k | Table 5 rows; Fig. 7 | |
 
 ## Data protocol
