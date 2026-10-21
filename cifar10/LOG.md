@@ -8,6 +8,70 @@ driver 535, torch 2.5.1+cu121.
 
 ---
 
+# 2026-10-21 — Step 8 seeds: aligned PGI's FC-only advantage is real; its full-FT advantage was noise
+
+## Run
+
+| | |
+|---|---|
+| Command | `./cifar10/run.sh 8 --scope paper --ft-seeds 42,43,44 --methods pgi_aligned,pgi_original,l1,l2 --ft-modes fc,full` |
+| Runs | 24 planned, 8 done (seed 42), 16 new, about 50 min. 63 tests passed |
+| Migration | `migrated 23 rows of results.csv: added ft_seed = 42` (21 paper + 2 grid rows from the stopped grid run) |
+| Gate | **FAIL** on reproduction (aligned fc −10.50 vs −3.78 ± 2). PASS on ≥ L1 and ≥ random |
+
+ΔAcc vs dense at (19, 16), mean ± sd over fine-tuning seeds 42/43/44:
+
+| method | fc | full |
+|---|---|---|
+| **pgi_aligned** | **−10.50 ± 0.05** | −5.00 ± 0.42 |
+| l1 | −11.99 ± 0.19 | −4.96 ± 0.62 |
+| l2 | −11.91 ± 0.39 | **−4.81 ± 0.12** |
+| pgi_original | −15.00 ± 0.10 | −5.61 ± 0.61 |
+| random (3 draws × seed 42) | −15.07 ± 0.55 | −6.30 ± 0.48 |
+| *paper Table 5, ASF-S* | | *−3.78* |
+
+Per seed:
+- **aligned:** fc −10.47 / −10.56 / −10.47; full −4.61 / −5.45 / −4.95
+- **original:** fc −14.89 / −15.03 / −15.08; full −5.38 / −6.31 / −5.15
+
+## Conclusions (these replace the single-seed reading in the entry below)
+
+1. **FC-only fine-tuning:** aligned PGI beats L1 and L2 by 1.4–1.5 points, with seed sd ≤ 0.4. **This is a real
+   effect, and the only clear win for a PGI-type criterion.**
+2. **Full fine-tuning:** L2, L1 and aligned PGI fall within 0.2 points of each other, inside their seed sd. **No
+   method is better.** The single-seed "aligned −4.61 is best" was noise (its seeds span −4.61 to −5.45).
+3. **The authors' formula (original PGI) equals random under FC-only fine-tuning,** now over 3 seeds (−15.00 vs
+   −15.07). Under full fine-tuning it is 0.6–0.8 points worse than the norm baselines.
+4. **Reproduction:**
+   - The FC-only claim misses by about 6.7 points (best −10.50 vs −3.78).
+   - Table 5's −3.78 is about 1.0 point better than our best full-fine-tune result (−4.8 to −5.0) and 1.8 points
+     better than the authors' formula.
+   - Plausible sources of the remaining gap: their weaker dense model (72.69% vs our 75.32%), and a single seed
+     in the paper.
+5. **Limitation:** the seeds vary fine-tuning only. The pruned filters are the same for each method. Variance
+   from retraining the dense model, and from the PG1 sample draw, is not included.
+
+## Fixed
+
+- The gate printed unrounded means (`-11.993333333333332`); seed means are now rounded to 2 decimals.
+
+## Workflow change: server outputs move out of the repo
+
+- **The server has no git credentials,** so results can only reach GitHub through the laptop (rsync, then
+  commit). The server kept its outputs inside its working tree, so each laptop commit of results made the
+  server's next `git pull` refuse to overwrite its own untracked copies. This happened three times.
+- **Fix.** `config.OUTPUTS_DIR` and `run.sh`'s log folder now follow `$ASFS_OUTPUTS` (default
+  `cifar10/outputs`). On the server it is set to `~/asfs_outputs`, outside the repo, so the server's tree only
+  ever changes through `git pull`. The laptop rsyncs from `~/asfs_outputs/` (command in README).
+
+## Next
+
+- [ ] Server: move `cifar10/outputs` → `~/asfs_outputs`, set `ASFS_OUTPUTS`, restore the tracked copies, pull
+- [ ] Resume `--scope grid` (2 of 49 configs done; about 2.4 h)
+- [ ] Laptop: rsync the seed and grid results, then commit
+
+---
+
 # 2026-10-21 — Step 8 (paper point): FC-only recovery does not reproduce; full fine-tuning nearly does
 
 ## Run
@@ -64,7 +128,7 @@ nothing about the selection.
 
 - [ ] `--scope grid` (49 runs, about 2.5 h): the fc accuracy-vs-sparsity curve, and the ~72% point (26, 18) to
   compare with Table 1's Acc↓ 7.74
-- [ ] Repeat seeds at (19, 16) for aligned, original, L1 and L2 (fc and full), to tell whether "aligned >
+- [x] Repeat seeds at (19, 16) for aligned, original, L1 and L2 (fc and full), to tell whether "aligned >
   L1/L2" is real. **Added:** `--ft-seeds` and `--methods` on step 8.
   - `ft_seed` is now part of each run's identity in `results.csv`. Older files are migrated in place: existing
     rows get ft_seed = 42.

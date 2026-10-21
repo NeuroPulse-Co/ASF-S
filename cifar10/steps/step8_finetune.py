@@ -221,7 +221,7 @@ def main():
             runs.setdefault((r["method"], r["ft_mode"]), []).append(float(r["d_acc"]))
     if not runs:
         return
-    paper = {k: float(np.mean(v)) for k, v in runs.items()}
+    paper = {k: round(float(np.mean(v)), 2) for k, v in runs.items()}
     print("\nPaper point (19, 16) — ΔAcc vs dense, mean ± sd over fine-tuning seeds (n):")
     all_methods = sorted({m for m, _ in paper})
     modes = sorted({md for _, md in paper})

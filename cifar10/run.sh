@@ -8,7 +8,8 @@
 #   ./cifar10/run.sh diag_aug_parity                   # any steps/<name>.py by name
 #   GPU=1 ./cifar10/run.sh 1                           # pick a GPU
 #
-# Extra arguments go to the step script. Logs: cifar10/outputs/<run-id>/logs/.
+# Extra arguments go to the step script. Outputs and logs go to $ASFS_OUTPUTS (default
+# cifar10/outputs), under <run-id>/ and <run-id>/logs/.
 # Run long steps (1, 8, 9) under tmux.
 #
 set -euo pipefail
@@ -33,7 +34,8 @@ RUN_ID=run01
 for ((i = 1; i <= $#; i++)); do
   [[ "${!i}" == --run-id ]] && { j=$((i + 1)); RUN_ID="${!j}"; }
 done
-LOGDIR="$HERE/outputs/$RUN_ID/logs"; mkdir -p "$LOGDIR"
+OUT="${ASFS_OUTPUTS:-$HERE/outputs}"; OUT="${OUT/#\~/$HOME}"
+LOGDIR="$OUT/$RUN_ID/logs"; mkdir -p "$LOGDIR"
 LOG="$LOGDIR/$(basename "$SCRIPT" .py)_$(date +%Y%m%d-%H%M%S).log"
 
 echo "==> $(basename "$SCRIPT") $*   (log: $LOG)"

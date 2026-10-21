@@ -6,11 +6,15 @@ Values the paper states are marked [paper §...]. Values it leaves open are mark
 from a paper fact. Paper numbers used as pass/fail gates live in paper_targets.py.
 """
 
+import os
 from pathlib import Path
 
 ROOT        = Path(__file__).resolve().parent
 DATA_DIR    = ROOT / "data"
-OUTPUTS_DIR = ROOT / "outputs"
+# On the GPU server, set ASFS_OUTPUTS to a folder outside the repo (e.g. ~/asfs_outputs).
+# Results are copied to the laptop with rsync and committed there; keeping them out of the
+# server's working tree stops `git pull` from colliding with its own untracked copies.
+OUTPUTS_DIR = Path(os.environ.get("ASFS_OUTPUTS", ROOT / "outputs")).expanduser()
 
 SEED        = 42                                   # [assumed] original scripts
 NUM_CLASSES = 10

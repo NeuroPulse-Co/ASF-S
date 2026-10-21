@@ -19,7 +19,20 @@ most likely ran.
 ./cifar10/run.sh 1 --protocol clean --run-id run01
 ```
 
-`run.sh` tees each log to `outputs/<run-id>/logs/`. Run steps 1, 8 and 9 under `tmux`.
+`run.sh` tees each log to `<outputs>/<run-id>/logs/`. Run steps 1, 8 and 9 under `tmux`.
+
+### Results workflow (the server has no git credentials)
+
+- **On the server,** outputs live **outside the repo**: `export ASFS_OUTPUTS=~/asfs_outputs` (in `~/.bashrc`).
+  The server only ever runs `git pull`, so its working tree has no untracked result files to collide with.
+- **On the laptop,** copy the results in, then commit and push:
+
+```bash
+rsync -rczm --include='*/' --include='gate.json' --include='*.png' --include='*.csv' --include='*.json' \
+      --include='*.log' --exclude='*' yutharsan@intellisense08-ewispro9900g:~/asfs_outputs/ cifar10/outputs/
+```
+
+Checkpoints and `.npz` files stay on the server. Logs are copied but gitignored.
 
 ## Steps and gates
 
@@ -33,7 +46,7 @@ most likely ran.
 | 5 | Contrast + PCA, Eq. 9–11 | top-4 explained variance ≈ 90% (§C.3), ≥ 0.85 | **PASS**: 92.7% (paper ~90%); no sign flips needed |
 | 6 | PGI, Eq. 12–13 (`literal` / `aligned`) | Fig. 11; sanity (finite, [0,1], non-degenerate); ρ vs L1 norm | **PASS**: half of each layer < 0.2; aligned vs original ρ ≈ 0 (−0.16, +0.03) |
 | 7 | Prune, 9×9 τ grid | prune == mask; operating points of Tables 1 and 5 exist; pre-FT PGI vs L1/random | **PASS** (aligned). Table 5 point = exactly (19,16) kept; Table 1 point infeasible; grid too coarse to hit (19,16) |
-| 8 | Fine-tune: FC-only (b), full (a) | ΔAcc −3.78 at (19,16) kept = 75.8% params↓ (Table 5); PGI ≥ L1, random. Table 1 point infeasible | **FAIL (fc)**: aligned −10.47, original −14.89. Full FT: aligned −4.61, original −5.38 (≈ Table 5). Aligned ≥ L1 ≥ random; grid pending |
+| 8 | Fine-tune: FC-only (b), full (a) | ΔAcc −3.78 at (19,16) kept = 75.8% params↓ (Table 5); PGI ≥ L1, random. Table 1 point infeasible | **FAIL (fc)**, 3 seeds: aligned −10.50, L1/L2 −11.9, original −15.00 ≈ random. Full FT: all ≈ −4.8 to −5.0 (original −5.61) vs paper −3.78. Grid pending |
 | 9 | Baselines: random, L1, L2, top-k | Table 5 rows; Fig. 7 | |
 
 ## Data protocol
