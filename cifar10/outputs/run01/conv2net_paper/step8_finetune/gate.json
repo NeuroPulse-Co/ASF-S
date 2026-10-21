@@ -2,7 +2,7 @@
   "step": "step8_finetune",
   "model": "conv2net",
   "protocol": "paper",
-  "time": "2026-10-21 13:09:43",
+  "time": "2026-10-21 14:06:05",
   "pass": false,
   "checks": [
     {
@@ -28,6 +28,36 @@
     }
   ],
   "info": {
+    "best_fc_over_lr": {
+      "pgi_aligned": {
+        "mode": "fc",
+        "d_acc": -10.5
+      },
+      "pgi_original": {
+        "mode": "fc",
+        "d_acc": -15.0
+      },
+      "l1": {
+        "mode": "fc",
+        "d_acc": -11.99
+      },
+      "l2": {
+        "mode": "fc",
+        "d_acc": -11.91
+      },
+      "random0": {
+        "mode": "fc@0.001",
+        "d_acc": -15.63
+      },
+      "random1": {
+        "mode": "fc",
+        "d_acc": -14.58
+      },
+      "random2": {
+        "mode": "fc",
+        "d_acc": -14.97
+      }
+    },
     "base_test_acc": 75.32,
     "paper_target_d_acc": -3.78,
     "paper_point_mean": {
@@ -51,7 +81,21 @@
       "random1|full": -6.82,
       "random2|fc": -14.97,
       "random2|fc_frozen": -16.05,
-      "random2|full": -6.19
+      "random2|full": -6.19,
+      "pgi_aligned|fc@0.001": -10.91,
+      "pgi_aligned|fc@0.003": -13.16,
+      "pgi_original|fc@0.001": -16.21,
+      "pgi_original|fc@0.003": -17.86,
+      "l1|fc@0.001": -13.3,
+      "l1|fc@0.003": -15.49,
+      "l2|fc@0.001": -12.36,
+      "l2|fc@0.003": -14.34,
+      "random0|fc@0.001": -15.63,
+      "random0|fc@0.003": -17.51,
+      "random1|fc@0.001": -15.33,
+      "random1|fc@0.003": -17.38,
+      "random2|fc@0.001": -15.79,
+      "random2|fc@0.003": -17.49
     },
     "paper_point_runs": {
       "pgi_aligned|fc": [
@@ -132,6 +176,48 @@
       ],
       "random2|full": [
         -6.19
+      ],
+      "pgi_aligned|fc@0.001": [
+        -10.91
+      ],
+      "pgi_aligned|fc@0.003": [
+        -13.16
+      ],
+      "pgi_original|fc@0.001": [
+        -16.21
+      ],
+      "pgi_original|fc@0.003": [
+        -17.86
+      ],
+      "l1|fc@0.001": [
+        -13.3
+      ],
+      "l1|fc@0.003": [
+        -15.49
+      ],
+      "l2|fc@0.001": [
+        -12.36
+      ],
+      "l2|fc@0.003": [
+        -14.34
+      ],
+      "random0|fc@0.001": [
+        -15.63
+      ],
+      "random0|fc@0.003": [
+        -17.51
+      ],
+      "random1|fc@0.001": [
+        -15.33
+      ],
+      "random1|fc@0.003": [
+        -17.38
+      ],
+      "random2|fc@0.001": [
+        -15.79
+      ],
+      "random2|fc@0.003": [
+        -17.49
       ]
     },
     "random_fc_mean": -15.07,

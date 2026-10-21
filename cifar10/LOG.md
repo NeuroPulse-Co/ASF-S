@@ -8,6 +8,45 @@ driver 535, torch 2.5.1+cu121.
 
 ---
 
+# 2026-10-21 — Fairness check 1: a higher FC-only learning rate makes every method worse
+
+## Run
+
+| | |
+|---|---|
+| Command | `./cifar10/run.sh 8 --scope paper --ft-seeds 42 --ft-lrs 1e-3,3e-3 --ft-modes fc` |
+| Runs | 14 (7 methods × 2 learning rates, seed 42), about 16 min. Migration added `ft_lr = 0.0001` to the 86 earlier rows |
+| Tests | 64 passed (after fixing the migration test, which wrote `ft_seed` into a header without it) |
+
+ΔAcc at (19, 16), FC-only fine-tuning. The 1e-4 column is the 3-seed mean; the others are seed 42:
+
+| method | lr 1e-4 (recipe) | 1e-3 | 3e-3 |
+|---|---|---|---|
+| pgi_aligned | **−10.50** | −10.91 | −13.16 |
+| l2 | **−11.91** | −12.36 | −14.34 |
+| l1 | **−11.99** | −13.30 | −15.49 |
+| pgi_original | **−15.00** | −16.21 | −17.86 |
+| random0 / 1 / 2 | −15.67 / **−14.58** / **−14.97** | **−15.63** / −15.33 / −15.79 | −17.51 / −17.38 / −17.49 |
+
+## Findings
+
+1. **The original recipe's 1e-4 is the best tested rate for every method** (random0's 1e-3 is better by 0.04,
+   which is noise). Higher rates peak within 3–31 epochs and settle on worse solutions.
+2. **The method ranking is identical at every rate:** aligned > L2 ≈ L1 > original PGI ≈ random. The
+   conclusion is robust to this hyperparameter.
+3. **Fairness gap 1 is closed.** The FC-only shortfall against Table 5 (about 6.7 points) is not a tuning
+   artefact.
+   - Accuracy improves as the rate falls, so 3e-5 might add a little.
+   - But 1e-3 → 1e-4 gained aligned PGI only 0.4 points, so a lower rate cannot plausibly close 6.7.
+   - Not pursued; noted as a residual.
+
+## Next
+
+- [ ] Fairness check 2: the fully original pipeline end to end (S = 1, σ = 0.1, legacy PG1, literal PGI, |mean|)
+- [ ] Fairness check 3: a weaker dense model (~72.7%) at (19, 16)
+
+---
+
 # 2026-10-21 — Step 8 grid: FC-only accuracy falls steadily with sparsity; ~72% point is close to Table 1
 
 ## Run
@@ -49,7 +88,7 @@ Selected points (ΔAcc vs dense 75.32; full table in `results.csv`):
 
 ## Next (fairness checks before any redesign, ranked)
 
-- [ ] **FC-only learning rate:** try 1e-3 and 3e-3 for all methods at (19, 16). This is the one most likely to
+- [x] **FC-only learning rate:** try 1e-3 and 3e-3 for all methods at (19, 16). This is the one most likely to
   move the headline gap. **Added:** `--ft-lrs` on step 8.
   - `ft_lr` is now part of each run's identity in `results.csv`. Existing rows are migrated to 1e-4; this was
     tested on a copy of the real file, where all 86 rows still count as done.
