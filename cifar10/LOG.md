@@ -66,8 +66,8 @@ Per seed:
 
 ## Next
 
-- [ ] Server: move `cifar10/outputs` → `~/asfs_outputs`, set `ASFS_OUTPUTS`, restore the tracked copies, pull
-- [ ] Resume `--scope grid` (2 of 49 configs done; about 2.4 h)
+- [x] Server: moved `cifar10/outputs` → `~/asfs_outputs`, set `ASFS_OUTPUTS`, restored the tracked copies, pulled `c5a75fa`
+- [ ] Resume `--scope grid` (2 of 49 configs done; about 2.4 h). **Running since 10:47 on 2026-10-21, writing to `~/asfs_outputs`**
 - [ ] Laptop: rsync the seed and grid results, then commit
 
 ---
