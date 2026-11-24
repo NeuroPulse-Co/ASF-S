@@ -4,6 +4,45 @@ Decisions, runs and findings, newest first. Each run records host, commit, comma
 
 ---
 
+# 2026-11-24 — S1 prep: runner, smoke test on the server, dense training started
+
+## Server state
+- Host `intellisense08-EWISPro9900G` (RTX 2080). The repo is on `afc_prune` at 12e17ef. The afcprune suite
+  passes there too: **73 passed** with torch 2.5.1+cu121, so the golden outputs hold across torch versions
+  and devices.
+- Dense checkpoints (run01, seed43, diag_tv) are backed up to the laptop under `~/asfs_backups/`.
+- Clean-protocol dense models started in tmux `afcp_dense` with `cifar10/steps/step1_train.py --protocol
+  clean --seed {42,43,44} --run-id afcp_dense_s{seed}`. That is the same model, data and loop code as
+  afcprune's port.
+
+## New code (uncommitted)
+- `afcprune/pipeline.py`: output-layer AFC → PG1 → ΔG → PCA in one call, with the same seeded draw as
+  cifar10 step 3, plus P3 diagnostics. Test: `tests/test_pipeline.py` (2 passed).
+- `experiments/s1_baselines.py`: selector × budget × tier for one checkpoint, val-chosen allocation
+  (BN-recalibrated val accuracy over the 40 nearest candidates), resumable CSV.
+- `experiments/run_s1.sh`: phases `closed` / `gradient` / `gate`.
+
+## Smoke run (scratch copy `~/afcp_scratch`, not the repo)
+| | |
+|---|---|
+| Command | `s1_baselines.py --dense run01 --protocol paper --budgets t5pt,70 --selectors pgi_aligned,l1 --tiers T0,T1r,T2r,T3r,T1fc --max-epochs 1 --alloc-max 3` |
+| Time | 3.1 min |
+| Contrast diagnostics | dense 75.32, σ 0.831, top-4 var 0.927, min λ2−λ3 0.152, min group 50. All equal run01's step 2–5 logs, so the port matches on real data. Bootstrap PG1 median \|cos\| 0.993: PG1 is stable on CIFAR-10 (P3) |
+
+Smoke numbers (val = test, 1 FT epoch; **not results**):
+
+| | t5pt T1r | t5pt T3r | 70% T1r | 70% T3r |
+|---|---|---|---|---|
+| pgi_aligned | −11.34 | −9.94 | −8.10 | −7.72 |
+| l1 | −12.72 | −10.62 | −7.58 | −7.48 |
+
+- The closed-form ridge head alone (about 10 s) lands near run01's gradient fc FT (−10.50). The
+  allocation at 70% picks 31/19, keeping conv1 almost whole, as the cifar10 grid predicted.
+- Gate caveat: run01's −10.50 is a **3-seed mean**. The gate runs one FT seed with ±0.5, so seed noise
+  alone could fail it. If it does, rerun with `--ft-seed 43/44` and compare the mean.
+
+---
+
 # 2026-11-24 — S0: skeleton, ports, protocol guard, golden regression
 
 ## Done
