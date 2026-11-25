@@ -1,0 +1,57 @@
+repo: ASF-S
+generated_by: record.py 1.0.0
+workstreams:
+- W1
+studies:
+- id: bert-pg-transfer
+  title: Does principal-gradient pruning transfer to the feed-forward layers of BERT?
+  workstream: W1
+  status: closed-inconclusive
+  summary: We applied the principal-gradient (PG) importance score from Artificial Structure Function
+    Search (ASF-S) to the feed-forward neurons of a BERT-base text classifier on AG News. Pruning those
+    neurons in three of BERT's twelve layers costs about one point of accuracy or less for every method
+    we tried, so on one seed the results cannot tell PG apart from random or magnitude pruning.
+  page: studies/bert-pg-transfer.md
+- id: cifar10-repro
+  title: Does a step-by-step re-implementation of ASF-S reproduce the paper's Conv2Net results on CIFAR-10?
+  workstream: W1
+  status: closed-negative
+  summary: We rebuilt Artificial Structure Function Search (ASF-S) from scratch on the paper's own setting,
+    Conv2Net on CIFAR-10, and checked every step against a number or figure from the paper. Steps 0 to
+    7 match the paper, but when only the final fully connected (FC) layer is retrained after pruning,
+    we lose 10.50 accuracy points where the paper reports 3.78.
+  page: studies/cifar10-repro.md
+- id: cifar100-port-audit
+  title: Does ASF-S reproduce on CIFAR-100 once the ported code is audited and fixed?
+  workstream: W1
+  status: closed-negative
+  summary: We ported the Artificial Structure Function Search (ASF-S) authors' code to CIFAR-100, audited
+    it against the paper and fixed three bugs. With the fixes, the method's filter scores were barely
+    better than random, and simple baselines beat it at 50% or more of parameters removed.
+  page: studies/cifar100-port-audit.md
+- id: mnist-lenet-sanity
+  title: Does ASF-S pruning on LeNet-300-100 with MNIST reproduce the paper's claims and beat weight magnitude?
+  workstream: W1
+  status: closed-negative
+  summary: We re-implemented the Artificial Structure Function Search (ASF-S) pipeline for the paper's
+    smallest experiment, a LeNet-300-100 network on MNIST, as a quick sanity check before the larger reproductions.
+    The paper's baseline network reproduces exactly, but ASF-S never beats simple weight-magnitude pruning,
+    and the paper's "no accuracy drop at 70% sparsity" claim holds only when every layer is fine-tuned.
+  page: studies/mnist-lenet-sanity.md
+posts:
+- file: posts/2026-11-25-bert-pg-transfer.md
+  title: Does principal-gradient pruning transfer to the feed-forward layers of BERT?
+  date: '2026-11-25'
+  draft: true
+- file: posts/2026-11-25-cifar10-repro.md
+  title: Does a step-by-step re-implementation of ASF-S reproduce the paper's Conv2Net results on CIFAR-10?
+  date: '2026-11-25'
+  draft: true
+- file: posts/2026-11-25-cifar100-port-audit.md
+  title: Does ASF-S reproduce on CIFAR-100 once the ported code is audited and fixed?
+  date: '2026-11-25'
+  draft: true
+- file: posts/2026-11-25-mnist-lenet-sanity.md
+  title: Does ASF-S pruning on LeNet-300-100 with MNIST reproduce the paper's claims and beat weight magnitude?
+  date: '2026-11-25'
+  draft: true

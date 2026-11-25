@@ -1,0 +1,25 @@
+# Backfilled by hand from gate.json and LOG.md; see source and notes.
+id: 20261020-1655-server-run01-step3
+study: cifar10-repro
+author: Dewmina Wijekoon
+host: server
+started: '2026-10-20T16:55:56+05:30'
+finished: null
+exit_code: null
+commit: unknown
+dirty: null
+command: ./cifar10/run.sh 3
+seed: null
+backfilled: true
+source: studies/cifar10-repro/outputs/run01/conv2net_paper/step3_afc/gate.json; studies/cifar10-repro/LOG.md;
+  log file names in studies/cifar10-repro/outputs/run01/logs/
+outputs_dir: ~/asfs_outputs/run01/conv2net_paper/step3_afc
+gpu: NVIDIA GeForce RTX 2080
+torch: 2.5.1+cu121
+notes: 'Committed copy of the small outputs: studies/cifar10-repro/outputs/run01/conv2net_paper/step3_afc/.
+  Run id uses gate.json time 2026-10-20 16:55:57; started is taken from the server log file name; finish
+  time unknown (server local time, +05:30 assumed). Commands were run from the old cifar10/ folder (now
+  studies/cifar10-repro/). Rerun at sigma = 0.8309 (median rule) after the step 4 diagnosis; the first
+  run at sigma = 0.1 was overwritten. Command as stated in LOG entry ''Step 3''. Gate PASS. Originally
+  written to ~/NeuroPulseCo/ASF-S/cifar10/outputs/run01/conv2net_paper/step3_afc on the server; the LOG
+  (2026-10-21) records moving that folder to ~/asfs_outputs, which is where outputs_dir points.'

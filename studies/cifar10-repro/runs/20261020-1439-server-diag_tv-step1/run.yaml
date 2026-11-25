@@ -1,0 +1,26 @@
+# Backfilled by hand from gate.json and LOG.md; see source and notes.
+id: 20261020-1439-server-diag_tv-step1
+study: cifar10-repro
+author: Dewmina Wijekoon
+host: server
+started: '2026-10-20T14:24:02+05:30'
+finished: null
+exit_code: null
+commit: unknown
+dirty: null
+command: ./cifar10/run.sh 1 --run-id diag_tv --backend torchvision
+seed: 42
+backfilled: true
+source: studies/cifar10-repro/outputs/diag_tv/conv2net_paper/step1_train/gate.json; studies/cifar10-repro/LOG.md;
+  log file names in studies/cifar10-repro/outputs/diag_tv/logs/
+outputs_dir: ~/asfs_outputs/diag_tv/conv2net_paper/step1_train
+gpu: NVIDIA GeForce RTX 2080
+torch: 2.5.1+cu121
+notes: 'Committed copy of the small outputs: studies/cifar10-repro/outputs/diag_tv/conv2net_paper/step1_train/.
+  Run id uses gate.json time 2026-10-20 14:39:22; started is taken from the server log file name; finish
+  time unknown (server local time, +05:30 assumed). Commands were run from the old cifar10/ folder (now
+  studies/cifar10-repro/). Command stated in LOG entry 2026-10-20 ''Step 1 diagnostic''. Seed is not in
+  gate.json; 42 is the LOG''s table value for diag_tv. Test acc 75.35%. gate.json says pass: false because
+  it was gated with the earlier two-sided tolerance; the gate later became one-sided. Originally written
+  to ~/NeuroPulseCo/ASF-S/cifar10/outputs/diag_tv/conv2net_paper/step1_train on the server; the LOG (2026-10-21)
+  records moving that folder to ~/asfs_outputs, which is where outputs_dir points.'

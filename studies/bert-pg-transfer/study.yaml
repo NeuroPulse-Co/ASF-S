@@ -1,0 +1,67 @@
+id: bert-pg-transfer
+title: "Does principal-gradient pruning transfer to the feed-forward layers of BERT?"
+workstream: W1
+status: closed-inconclusive
+owner: [Dewmina Wijekoon]       # current maintainer of this record; the work was done by GitHub user Charuka09 (see notes)
+started: 2026-01-06
+summary: >-
+  We applied the principal-gradient (PG) importance score from Artificial Structure Function Search
+  (ASF-S) to the feed-forward neurons of a BERT-base text classifier on AG News. Pruning those
+  neurons in three of BERT's twelve layers costs about one point of accuracy or less for every
+  method we tried, so on one seed the results cannot tell PG apart from random or magnitude pruning.
+question: >-
+  When we prune feed-forward (FFN) intermediate neurons in layers 0, 5 and 11 of a BERT-base model
+  fine-tuned on AG News, does ranking neurons by PG importance keep more test accuracy and better
+  calibration than random, L1 or L2 magnitude pruning?
+hypothesis: >-
+  If the first principal gradient (PG1) of the functional-connectivity graph between FFN neurons
+  marks the neurons that separate correct from incorrect predictions, as it is meant to in
+  convolutional networks, PG-ranked pruning should lose less accuracy than random or magnitude
+  pruning at the same share of neurons removed.
+success_criterion: >-
+  At matched shares of FFN neurons removed, PG pruning keeps clearly more test accuracy than
+  random, L1 and L2 pruning, by more than the measurement noise of the AG News test set (about
+  0.26 points at 94.5% accuracy on 7,600 examples).
+criterion: post_hoc
+code:
+  - studies/bert-pg-transfer/main.py
+  - studies/bert-pg-transfer/run.sh
+  - studies/bert-pg-transfer/run_full.sh
+  - studies/bert-pg-transfer/run_head.sh
+  - studies/bert-pg-transfer/plots.ipynb
+  - studies/bert-pg-transfer/test.ipynb
+links: []
+closed: 2026-04-28
+verdict: >-
+  The evidence cannot separate PG pruning from the simple baselines. In the committed sweep,
+  zeroing 99.96% of the FFN neurons in layers 0, 5 and 11 of the fully fine-tuned model lowers test
+  accuracy only from 94.54% to 93.57% before retraining, and the later all-method figure keeps PG,
+  random, L1 and L2 within about one point of each other at every budget, on one seed. Three FFN
+  layers of BERT are too redundant, behind the residual connections, for this setup to test whether
+  PG chooses neurons well.
+key_results:
+  - label: "BERT-base fully fine-tuned on AG News, unpruned"
+    value: 94.54
+    unit: "accuracy (%)"
+    split: test
+    n_seeds: 1
+  - label: "Same model, 99.96% of FFN neurons in layers 0, 5 and 11 zeroed by PG importance, before retraining"
+    value: 93.57
+    unit: "accuracy (%)"
+    split: test
+    n_seeds: 1
+    compare: {label: "unpruned", value: 94.54}
+  - label: "Frozen-encoder model, 99.51% of FFN neurons in layers 0, 5 and 11 zeroed by PG importance, before retraining"
+    value: 66.59
+    unit: "accuracy (%)"
+    split: test
+    n_seeds: 1
+    compare: {label: "unpruned frozen-encoder model", value: 83.71}
+original_author: "GitHub user Charuka09 (Charuka Herath); to be added to people.yaml and credited as owner"
+notes: >-
+  The two sweeps behind sweep_results.csv were run on 2026-01-06 with seed 42, reconstructed from
+  the README (exact commit and host unknown, so no backfilled run records were made):
+  head (frozen encoder): python main.py --stage sweep --freeze_encoder --target_layers 0,5,11
+  --thresholds 0.1,...,0.9 --epochs 2 --lr 5e-4 --batch_size 32;
+  full: python main.py --stage sweep --target_layers 0,5,11 --thresholds 0.1,...,0.9 --epochs 2
+  --lr 2e-5 --batch_size 32.

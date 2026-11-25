@@ -1,0 +1,13 @@
+# Tells the website to rebuild when the curated showcase/ changes on main.
+name: showcase
+on:
+  push:
+    branches: [main]
+    paths: ["showcase/**"]
+jobs:
+  validate:
+    uses: NeuroPulse-Co/.github/.github/workflows/validate-records.yml@main
+  notify-site:
+    needs: validate
+    uses: NeuroPulse-Co/.github/.github/workflows/notify-site.yml@main
+    secrets: inherit

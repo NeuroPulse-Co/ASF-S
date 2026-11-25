@@ -1,0 +1,68 @@
+id: mnist-lenet-sanity
+title: "Does ASF-S pruning on LeNet-300-100 with MNIST reproduce the paper's claims and beat weight magnitude?"
+workstream: W1
+status: closed-negative
+owner: [Ravindu Wanigasooriya]
+started: 2026-10-09
+summary: >-
+  We re-implemented the Artificial Structure Function Search (ASF-S) pipeline for the paper's
+  smallest experiment, a LeNet-300-100 network on MNIST, as a quick sanity check before the larger
+  reproductions. The paper's baseline network reproduces exactly, but ASF-S never beats simple
+  weight-magnitude pruning, and the paper's "no accuracy drop at 70% sparsity" claim holds only
+  when every layer is fine-tuned.
+question: >-
+  When we prune the first hidden layer (fc1) of the paper's own LeNet-300-100 checkpoint on MNIST,
+  does ranking neurons by ASF-S importance keep more accuracy than ranking them by weight magnitude
+  (L1 or L2 norm) or at random, and does it reproduce the paper's reported accuracy at 70% and
+  about 95% sparsity?
+hypothesis: >-
+  If the first principal gradient (PG1) of the Artificial Functional Connectivity (AFC) graph
+  captures which neurons matter for correct predictions, ASF-S should keep more accuracy than
+  magnitude and random pruning at the same sparsity, and should match the paper's Table 1 claim of
+  no accuracy drop at 70% sparsity without retraining the pruned layers.
+success_criterion: >-
+  On the held-out evaluation half of the MNIST test set, at matched fc1 sparsity, at least one
+  ASF-S variant beats both L1 and L2 magnitude pruning by more than the measurement noise (about
+  0.7 points) when the pruned layers are frozen, and the accuracy drop at 70% sparsity with
+  output-layer-only retraining is close to zero.
+criterion: post_hoc
+code:
+  - studies/mnist-lenet-sanity/config.py
+  - studies/mnist-lenet-sanity/extract.py
+  - studies/mnist-lenet-sanity/pg.py
+  - studies/mnist-lenet-sanity/importance.py
+  - studies/mnist-lenet-sanity/prune.py
+  - studies/mnist-lenet-sanity/test_sanity.py
+  - studies/mnist-lenet-sanity/plot_results.py
+paper_targets:
+  lenet_baseline_test_acc: 98.51
+  lenet_70p_sparsity_acc_drop: 0.0
+  lenet_95p_params_removed_acc_change: -2.89
+links: []
+closed: 2026-10-21
+verdict: >-
+  The hypothesis did not hold. The paper's LeNet-300-100 checkpoint reproduces its reported 98.51%
+  test accuracy exactly, but on one checkpoint and one fine-tuning seed no ASF-S variant beats L1
+  or L2 magnitude pruning at any sparsity, and with only the output layer retrained the paper's
+  own procedure loses 1.68 points at 70% sparsity rather than none. ASF-S scores are strongly
+  correlated with weight magnitude (Spearman 0.85 to 0.93), so we think magnitude, not PG1, does
+  most of the work.
+key_results:
+  - label: "Unpruned LeNet-300-100 (the paper's checkpoint), full MNIST test set"
+    value: 98.51
+    unit: "accuracy (%)"
+    split: test
+    n_seeds: 1
+    compare: {label: "paper (Table 4)", value: 98.51}
+  - label: "ASF-S as coded by the authors, 70% of fc1 neurons pruned, output layer retrained only"
+    value: -1.68
+    unit: "accuracy change (points), evaluation half of the test set"
+    split: test
+    n_seeds: 1
+    compare: {label: "paper (Table 1)", value: 0.0}
+  - label: "Best ASF-S variant (asf_fc2), 90% of fc1 neurons pruned, output layer retrained only"
+    value: 89.10
+    unit: "accuracy (%), evaluation half of the test set"
+    split: test
+    n_seeds: 1
+    compare: {label: "L2 magnitude pruning, same setting", value: 91.20}

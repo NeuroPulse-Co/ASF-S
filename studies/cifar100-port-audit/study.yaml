@@ -1,0 +1,69 @@
+# studies/cifar100-port-audit/study.yaml
+id: cifar100-port-audit
+title: "Does ASF-S reproduce on CIFAR-100 once the ported code is audited and fixed?"
+workstream: W1
+status: closed-negative
+owner: [Dewmina Wijekoon]
+started: 2026-09-13
+closed: 2026-09-29
+summary: >-
+  We ported the Artificial Structure Function Search (ASF-S) authors' code to CIFAR-100, audited it
+  against the paper and fixed three bugs. With the fixes, the method's filter scores were barely better
+  than random, and simple baselines beat it at 50% or more of parameters removed.
+question: >-
+  On CIFAR-100 with Conv2Net, does ASF-S pruning with Principal Gradient Importance (PGI) and
+  fine-tuning of only the output fully connected (FC) layer keep close to the unpruned accuracy at
+  about 70% parameter reduction, and does PGI choose better filters than random, L1-norm and the
+  published baselines?
+hypothesis: >-
+  The paper reports that retraining only the output layer keeps full baseline accuracy at up to 70%
+  sparsity in a convolutional network, because PGI keeps the filters that shape the output layer's
+  Artificial Functional Connectivity (AFC). If that mechanism is general, it should carry over from
+  CIFAR-10 to CIFAR-100 once the code computes what the paper describes.
+success_criterion: >-
+  On the fixed code, ASF-S at about 70% parameter reduction stays within about 2 points of the
+  unpruned Conv2Net test accuracy (roughly three times the 0.73-point noise we measured between
+  repeated settings), PGI beats random and L1-norm filter choice at the same kept counts, and ASF-S is
+  not dominated by HRank, SVD, network slimming or SNOWS at matched compression.
+criterion: post_hoc
+code:
+  - studies/cifar100-port-audit/cifar100
+  - studies/cifar100-port-audit/scripts
+verdict: >-
+  ASF-S does not reproduce on CIFAR-100 Conv2Net. After we fixed the classifier rebuild, the
+  parameter counts and the single-sample PG1, ASF-S at 68.7% parameter reduction reached 40.46% test
+  accuracy against 52.52% unpruned (one seed), PGI chose filters only slightly better than random and
+  worse than L1-norm, and network slimming, SVD and HRank beat it at 50% reduction or more. The most
+  likely cause is the paper's PGI projection (Eq. 12), which is dimensionally undefined and which we
+  deliberately left as the authors implemented it.
+key_results:
+  - label: "ASF-S on Conv2Net with 68.7% of parameters removed and only the FC layer fine-tuned (run 02, fixed code)"
+    value: 40.46
+    unit: "test accuracy (%)"
+    split: test
+    n_seeds: 1
+    compare: {label: "unpruned Conv2Net, our run 01", value: 52.52}
+  - label: "Unpruned Conv2Net trained with the authors' CIFAR-100 script (run 01)"
+    value: 52.52
+    unit: "test accuracy (%)"
+    split: test
+    n_seeds: 1
+    compare: {label: "authors' fork, conv2net_metrics.csv", value: 51.93}
+  - label: "ASF-S keeping 10 of 32 conv1 and 20 of 64 conv2 filters (69.0% of parameters removed), FC-only fine-tuning (run 02)"
+    value: 32.00
+    unit: "test accuracy (%)"
+    split: test
+    n_seeds: 1
+    compare: {label: "network slimming at 70.5% removed on the same fixed code (run 03)", value: 37.02}
+  - label: "ASF-S filter choice keeping 30/57 filters, before any fine-tuning (run 02 check)"
+    value: 33.67
+    unit: "test accuracy (%)"
+    split: test
+    n_seeds: 1
+    compare: {label: "keeping the highest-L1-norm filters at the same counts", value: 42.10}
+paper_targets:
+  cnn_claim_fc_only_retention_at_70pct_sparsity_pct_of_baseline: 100
+links:
+  - studies/cifar100-port-audit/LOG.md
+  - studies/cifar100-port-audit/docs/cifar100-status.md
+  - studies/cifar100-port-audit/docs/asf-s-paper-vs-implementation.md

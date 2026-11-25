@@ -1,0 +1,26 @@
+# Backfilled by hand on 2026-11-25 from the archived run record. Unknown values are null.
+id: 20260929-1207-intellisense08-EWISPro9900G-run03-baselines
+study: cifar100-port-audit
+author: Dewmina Wijekoon
+host: intellisense08-EWISPro9900G
+started: 2026-09-29T12:07:00+05:30
+finished: 2026-09-29T13:59:00+05:30
+exit_code: null
+commit: 767f8af
+dirty: true
+command: "./scripts/run_pipeline.sh --model conv2net --steps svd,sliming,snows --ratios 0.7; then ./scripts/run_pipeline.sh --model conv2net --steps 5"
+seed: 42
+backfilled: true
+source: "studies/cifar100-port-audit/cifar100/pg_project_output/runs/run03_2026-09-29_baselines/RUN_INFO.md and README.md; studies/cifar100-port-audit/LOG.md entry 2026-09-29 'Run 03'"
+outputs_dir: studies/cifar100-port-audit/cifar100/pg_project_output/runs/run03_2026-09-29_baselines
+branch: cifar_100
+gpu: NVIDIA GeForce RTX 2080, driver 535.309.01
+python: "3.10"
+torch: 2.5.1+cu121
+notes: >-
+  Run 03 re-ran the SVD, network slimming ("Sliming") and SNOWS baselines at a 0.7 per-layer ratio,
+  and HRank at ratios 0.2 to 0.9, on run 02's checkpoint and fixed code. README.md says the
+  uncommitted changes flagged in RUN_INFO.md were model-selection edits from select_model.py, not
+  algorithm changes. README.md quotes the first command in full and the second only as "then
+  --steps 5", so we wrote the second out with the same --model flag. The exit code is not recorded.
+  The seed is 42 in every result row.

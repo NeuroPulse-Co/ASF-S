@@ -1,0 +1,26 @@
+# Backfilled by hand from gate.json and LOG.md; see source and notes.
+id: 20261020-1620-server-seed43-step1
+study: cifar10-repro
+author: Dewmina Wijekoon
+host: server
+started: '2026-10-20T16:12:01+05:30'
+finished: null
+exit_code: null
+commit: unknown
+dirty: null
+command: ./cifar10/run.sh 1 --run-id seed43 --seed 44
+seed: 44
+backfilled: true
+source: studies/cifar10-repro/outputs/seed43/conv2net_paper/step1_train/gate.json; studies/cifar10-repro/LOG.md;
+  log file names in studies/cifar10-repro/outputs/seed43/logs/
+outputs_dir: ~/asfs_outputs/seed43/conv2net_paper/step1_train
+gpu: NVIDIA GeForce RTX 2080
+torch: 2.5.1+cu121
+notes: 'Committed copy of the small outputs: studies/cifar10-repro/outputs/seed43/conv2net_paper/step1_train/.
+  Run id uses gate.json time 2026-10-20 16:20:39; started is taken from the server log file name; finish
+  time unknown (server local time, +05:30 assumed). Commands were run from the old cifar10/ folder (now
+  studies/cifar10-repro/). Command reconstructed: the LOG says the seed 44 run reused --run-id seed43
+  and overwrote the seed 43 run (75.85%, kept only in the LOG). gate.json records seed 44 and test acc
+  74.76%; pass: false under the earlier two-sided gate. Originally written to ~/NeuroPulseCo/ASF-S/cifar10/outputs/seed43/conv2net_paper/step1_train
+  on the server; the LOG (2026-10-21) records moving that folder to ~/asfs_outputs, which is where outputs_dir
+  points.'

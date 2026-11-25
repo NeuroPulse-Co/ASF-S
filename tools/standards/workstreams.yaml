@@ -1,0 +1,40 @@
+# Workstreams: the major research threads of NeuroPulse.
+# This list is the single source of truth. record.py validates study.yaml `workstream:`
+# against it, and the website builds its Research pages from it.
+# Add a workstream only after the team agrees; never renumber an existing one.
+
+- id: W0
+  title: Foundations
+  question: What problem are we solving, what has already been tried, and what exactly do we propose?
+  repos: []
+  owner: TBD
+
+- id: W1
+  title: Reproducing ASF-S
+  question: Can we reproduce the Artificial Structure Function Search (ASF-S) pruning results, and what do we learn when we cannot?
+  repos: [ASF-S]
+  owner: TBD
+
+- id: W2
+  title: AFC pruning protocol
+  question: Under a careful evaluation protocol, does preserving Artificial Functional Connectivity (AFC) select better filters than simple scores such as weight magnitude?
+  repos: [ASF-S]          # moves to AFC-Prune after the P2 restructure
+  owner: TBD
+
+- id: W3
+  title: "Continual learning: hard freezing"
+  question: If we protect each task's most important units by freezing them, how well does a single network learn a sequence of tasks?
+  repos: [ASF-S_Hard_Freezing]
+  owner: TBD
+
+- id: W4
+  title: "Continual learning: metaplastic soft consolidation"
+  question: Can we protect old tasks by gradually slowing learning on important weights, instead of freezing them outright?
+  repos: []
+  owner: TBD
+
+- id: W5
+  title: Benchmarking and thesis
+  question: How does our framework compare with established continual learning methods, and what is the final story we report?
+  repos: []
+  owner: TBD

@@ -1,0 +1,26 @@
+# Backfilled by hand from gate.json and LOG.md; see source and notes.
+id: 20261020-1632-server-run01-step1
+study: cifar10-repro
+author: Dewmina Wijekoon
+host: server
+started: '2026-10-20T16:23:59+05:30'
+finished: null
+exit_code: null
+commit: unknown
+dirty: null
+command: ./cifar10/run.sh 1 --run-id run01 --seed 42
+seed: 42
+backfilled: true
+source: studies/cifar10-repro/outputs/run01/conv2net_paper/step1_train/gate.json; studies/cifar10-repro/LOG.md;
+  log file names in studies/cifar10-repro/outputs/run01/logs/
+outputs_dir: ~/asfs_outputs/run01/conv2net_paper/step1_train
+gpu: NVIDIA GeForce RTX 2080
+torch: 2.5.1+cu121
+notes: 'Committed copy of the small outputs: studies/cifar10-repro/outputs/run01/conv2net_paper/step1_train/.
+  Run id uses gate.json time 2026-10-20 16:32:42; started is taken from the server log file name; finish
+  time unknown (server local time, +05:30 assumed). Commands were run from the old cifar10/ folder (now
+  studies/cifar10-repro/). Canonical dense model (75.32% test, seed 42 from gate.json). Command reconstructed
+  from the README''s generic form. The first run01 (commit 991e3e7, 76.53%) was overwritten by this one,
+  so that commit does not apply. Originally written to ~/NeuroPulseCo/ASF-S/cifar10/outputs/run01/conv2net_paper/step1_train
+  on the server; the LOG (2026-10-21) records moving that folder to ~/asfs_outputs, which is where outputs_dir
+  points.'

@@ -1,0 +1,26 @@
+# Backfilled by hand on 2026-11-25 from the archived run record. Unknown values are null.
+id: 20260928-1314-intellisense08-EWISPro9900G-run02-conv2net
+study: cifar100-port-audit
+author: Dewmina Wijekoon
+host: intellisense08-EWISPro9900G
+started: 2026-09-28T13:14:00+05:30
+finished: 2026-09-29T09:27:00+05:30
+exit_code: null
+commit: 1d43cb7
+dirty: true
+command: ./scripts/run_pipeline.sh --steps 2,4,6
+seed: 42
+backfilled: true
+source: "studies/cifar100-port-audit/cifar100/pg_project_output/runs/run02_2026-09-28_rtx2080_S50_fixes/RUN_INFO.md and README.md; studies/cifar100-port-audit/LOG.md entries 2026-09-28 and 2026-09-29"
+outputs_dir: studies/cifar100-port-audit/cifar100/pg_project_output/runs/run02_2026-09-28_rtx2080_S50_fixes
+branch: cifar_100
+gpu: NVIDIA GeForce RTX 2080, driver 535.309.01
+python: "3.10"
+torch: 2.5.1+cu121
+notes: >-
+  Run 02 applied fixes #1 to #3 (rebuild_fc copies the kept channels' columns, full parameter
+  counts, S = 50 samples for PG1) and reused run 01's checkpoint. It ran steps 2, 4 and 6 (the full
+  81-combination threshold grid, 1024 minutes). RUN_INFO.md records the commit with uncommitted code
+  changes, which were the fixes themselves. Start and finish times come from README.md; the exit code
+  is not recorded, although all 81 result rows were written. The command is reconstructed from the
+  steps listed in README.md. The seed is 42 in every row of results/pg_conv2net_cifar100.csv.
