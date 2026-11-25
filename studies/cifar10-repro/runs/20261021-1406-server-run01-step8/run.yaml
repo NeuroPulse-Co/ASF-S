@@ -1,0 +1,26 @@
+# Backfilled by hand from gate.json and LOG.md; see source and notes.
+id: 20261021-1406-server-run01-step8
+study: cifar10-repro
+author: Dewmina Wijekoon
+host: server
+started: '2026-10-20T17:49:08+05:30'
+finished: null
+exit_code: null
+commit: unknown
+dirty: null
+command: ./cifar10/run.sh 8 --scope paper --ft-seeds 42 --ft-lrs 1e-3,3e-3 --ft-modes fc
+seed: null
+backfilled: true
+source: studies/cifar10-repro/outputs/run01/conv2net_paper/step8_finetune/gate.json; studies/cifar10-repro/LOG.md;
+  log file names in studies/cifar10-repro/outputs/run01/logs/
+outputs_dir: ~/asfs_outputs/run01/conv2net_paper/step8_finetune
+gpu: NVIDIA GeForce RTX 2080
+torch: 2.5.1+cu121
+notes: 'Committed copy of the small outputs: studies/cifar10-repro/outputs/run01/conv2net_paper/step8_finetune/.
+  Run id uses gate.json time 2026-10-21 14:06:05; started is taken from the server log file name; finish
+  time unknown (server local time, +05:30 assumed). Commands were run from the old cifar10/ folder (now
+  studies/cifar10-repro/). This folder accumulates four invocations recorded in the LOG (2026-10-21 entries):
+  ''--scope paper'' (started 2026-10-20 17:49), ''--scope paper --ft-seeds 42,43,44 --methods pgi_aligned,pgi_original,l1,l2
+  --ft-modes fc,full'', ''--scope grid'' (resumed 2026-10-21 10:47), and the learning-rate check whose
+  command is given above (started 13:50, wrote the final gate.json). Seeds 42-44 (fine-tuning) so no single
+  seed. Gate FAIL: aligned PGI fc -10.50 vs paper -3.78.'

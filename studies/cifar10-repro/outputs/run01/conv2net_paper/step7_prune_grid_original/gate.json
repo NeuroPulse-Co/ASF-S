@@ -1,0 +1,67 @@
+{
+  "step": "step7_prune_grid",
+  "model": "conv2net",
+  "protocol": "paper",
+  "time": "2026-10-20 17:32:24",
+  "pass": true,
+  "checks": [
+    {
+      "metric": "prune == mask (max |\u0394logit|)",
+      "ours": 1.1e-05,
+      "paper": 0.0,
+      "tolerance": 0.001,
+      "pass": true
+    },
+    {
+      "metric": "a grid point within \u00b15 of 70% params\u2193 (Table 1)",
+      "ours": 69.94,
+      "paper": 70.0,
+      "tolerance": 5,
+      "pass": true
+    },
+    {
+      "metric": "a grid point within \u00b15 of 75.8% params\u2193 (Table 5)",
+      "ours": 78.39,
+      "paper": 75.8,
+      "tolerance": 5,
+      "pass": true
+    }
+  ],
+  "info": {
+    "variant": "original",
+    "base_acc": 75.32,
+    "base_params": 183434,
+    "base_flops": 40894484,
+    "near_table1": {
+      "tau_conv1": 0.4,
+      "tau_conv2": 0.4,
+      "kept_conv1": 6,
+      "kept_conv2": 21,
+      "params": 55147,
+      "flops": 3068948,
+      "params_red": 69.94,
+      "flops_red": 92.5,
+      "filters_red": 71.88,
+      "pre_acc": 10.01,
+      "pre_acc_l1": 9.77,
+      "pre_acc_random": 11.75
+    },
+    "near_table5": {
+      "tau_conv1": 0.1,
+      "tau_conv2": 0.5,
+      "kept_conv1": 24,
+      "kept_conv2": 14,
+      "params": 39636,
+      "flops": 7960596,
+      "params_red": 78.39,
+      "flops_red": 80.53,
+      "filters_red": 60.42,
+      "pre_acc": 11.55,
+      "pre_acc_l1": 15.45,
+      "pre_acc_random": 13.7
+    },
+    "unique_configs": 63,
+    "pre_ft_pgi_beats_l1": 0.635,
+    "pre_ft_pgi_beats_random": 0.508
+  }
+}

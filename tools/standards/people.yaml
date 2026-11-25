@@ -1,0 +1,32 @@
+# People who may appear as `owner:` of a study or `author:` of a run, log entry or post.
+# record.py checks names against `name` and `short`; use either form in records.
+# GitHub handles marked TODO-confirm were not verified: please correct them.
+
+- name: D.M.N.S. Gunarathna
+  short: Nipun Gunarathna            # TODO-confirm preferred display name
+  github: NipunSachintha             # TODO-confirm
+  index: 220185P
+  role: student
+
+- name: W.B.S.S. Harinakshi
+  short: Semini Harinakshi           # TODO-confirm preferred display name
+  github: Semini-Sawbhagya           # TODO-confirm
+  index: 220213D
+  role: student
+
+- name: K.W.M.R.S.B. Wanigasooriya
+  short: Ravindu Wanigasooriya       # TODO-confirm preferred display name
+  github: ravindusw                  # TODO-confirm
+  index: 220676X
+  role: student
+
+- name: S.W.G.M.Y.G.D.M. Wijekoon
+  short: Dewmina Wijekoon
+  github: dewminawijekoon
+  index: 220708B
+  role: student
+
+- name: Dr. Charith Chitraranjan
+  short: Charith Chitraranjan
+  github: null
+  role: supervisor

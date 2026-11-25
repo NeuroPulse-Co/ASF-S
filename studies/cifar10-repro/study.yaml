@@ -1,0 +1,94 @@
+id: cifar10-repro
+title: "Does a step-by-step re-implementation of ASF-S reproduce the paper's Conv2Net results on CIFAR-10?"
+workstream: W1
+status: closed-negative
+owner: [Dewmina Wijekoon]
+started: 2026-10-20
+closed: 2026-11-25
+summary: >-
+  We rebuilt Artificial Structure Function Search (ASF-S) from scratch on the paper's own setting,
+  Conv2Net on CIFAR-10, and checked every step against a number or figure from the paper. Steps 0
+  to 7 match the paper, but when only the final fully connected (FC) layer is retrained after
+  pruning, we lose 10.50 accuracy points where the paper reports 3.78.
+question: >-
+  If we implement each part of ASF-S as the paper describes it and check each part against the
+  paper before moving on, do we recover the paper's Table 5 result for Conv2Net on CIFAR-10: an
+  accuracy change of −3.78 points at 75.8% of parameters removed, after fine-tuning only the
+  output layer?
+hypothesis: >-
+  We expected the paper's numbers to reproduce once the method was implemented faithfully, because
+  the paper's architecture, training recipe and operating point can all be pinned down from its
+  tables, and because the earlier CIFAR-100 port had failed for reasons we could trace to the
+  inherited code rather than to the method itself.
+success_criterion: >-
+  Each step passes a gate against the paper (for example, parameter and FLOP counts from Table 4,
+  dense test accuracy at least 72.69 − 1.5 %, top-4 principal-component variance near the paper's
+  ~90%). The final gate is that Principal Gradient Importance (PGI), with FC-only fine-tuning at
+  the paper's exact operating point of 19 and 16 kept filters, reaches an accuracy change of at
+  least −3.78 − 2 = −5.78 points on the CIFAR-10 test set, and is no worse than L1-norm and random
+  selection. Each step's tolerance was written into the log before that step ran, but some gates
+  were revised after we saw results (the step 1 gate became one-sided and the step 4 gate gained
+  eigen-gap checks), so we record the criterion as post hoc.
+criterion: post_hoc
+code:
+  - studies/cifar10-repro/asfs
+  - studies/cifar10-repro/steps
+  - studies/cifar10-repro/tests
+  - studies/cifar10-repro/config.py
+  - studies/cifar10-repro/data.py
+  - studies/cifar10-repro/models.py
+  - studies/cifar10-repro/paper_targets.py
+  - studies/cifar10-repro/run.sh
+paper_targets:
+  conv2net_dense_test_acc: 72.69
+  conv2net_params: 183000
+  conv2net_flops: 40890000
+  pca_top4_explained: 0.90
+  table1_conv2net_acc_drop_70pct: 7.74
+  table5_conv2net_asfs_d_acc: -3.78
+  table5_conv2net_asfs_params_red: 75.8
+  table5_conv2net_asfs_flops_red: 82.7
+links:
+  - studies/cifar10-repro/LOG.md
+  - studies/cifar10-repro/README.md
+verdict: >-
+  Our reproduction does not reach the paper's headline result: with FC-only fine-tuning at the
+  paper's exact operating point, our best selection rule loses 10.50 points of test accuracy
+  (three fine-tuning seeds) against the paper's −3.78, and the authors' literal PGI formula does no
+  better than random selection. Steps 0 to 7 match the paper, and fine-tuning the whole network
+  instead comes close to Table 5 (−5.00 against −3.78), which suggests the paper's number was most
+  likely produced with full fine-tuning rather than the FC-only recovery it emphasises.
+key_results:
+  - label: "Corrected (aligned) PGI, 75.8% of parameters removed, FC-only fine-tuning"
+    value: -10.50
+    unit: "accuracy change (points)"
+    split: test
+    n_seeds: 3
+    std: 0.05
+    compare: {label: "paper, Table 5 (ASF-S)", value: -3.78}
+  - label: "Corrected (aligned) PGI, 75.8% of parameters removed, full fine-tuning"
+    value: -5.00
+    unit: "accuracy change (points)"
+    split: test
+    n_seeds: 3
+    std: 0.42
+    compare: {label: "paper, Table 5 (ASF-S)", value: -3.78}
+  - label: "Authors' literal PGI formula, 75.8% of parameters removed, FC-only fine-tuning"
+    value: -15.00
+    unit: "accuracy change (points)"
+    split: test
+    n_seeds: 3
+    std: 0.10
+    compare: {label: "ours, random selection (mean of 3 draws)", value: -15.07}
+  - label: "Corrected PGI, 72.1% of parameters removed (26, 18 kept), FC-only fine-tuning"
+    value: -8.66
+    unit: "accuracy change (points)"
+    split: test
+    n_seeds: 1
+    compare: {label: "paper, Table 1 (70% sparsity)", value: -7.74}
+  - label: "Dense Conv2Net test accuracy (canonical model, seed 42)"
+    value: 75.32
+    unit: "test accuracy (%)"
+    split: test
+    n_seeds: 1
+    compare: {label: "paper, Table 4", value: 72.69}

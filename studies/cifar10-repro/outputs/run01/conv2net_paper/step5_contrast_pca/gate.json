@@ -1,0 +1,34 @@
+{
+  "step": "step5_contrast_pca",
+  "model": "conv2net",
+  "protocol": "paper",
+  "time": "2026-10-20 17:11:55",
+  "pass": true,
+  "checks": [
+    {
+      "metric": "top-4 explained variance \u2265 0.85",
+      "ours": 0.9268,
+      "paper": 0.9,
+      "tolerance": 0.050000000000000044,
+      "pass": true
+    }
+  ],
+  "info": {
+    "K": 4,
+    "explained": [
+      0.4481,
+      0.2037,
+      0.1572,
+      0.1178,
+      0.0503,
+      0.0149,
+      0.0053,
+      0.0018,
+      0.0008,
+      0.0
+    ],
+    "flipped_classes": [],
+    "top_K_no_alignment": 0.9268,
+    "top_K_legacy_pg1": 0.9624
+  }
+}

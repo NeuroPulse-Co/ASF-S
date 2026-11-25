@@ -1,0 +1,27 @@
+# Backfilled by hand on 2026-11-25 from the archived run record. Unknown values are null.
+id: 20260916-0031-intellisense08-EWISPro9900G-run01-conv2net
+study: cifar100-port-audit
+author: Dewmina Wijekoon
+host: intellisense08-EWISPro9900G
+started: 2026-09-16T00:31:00+05:30
+finished: null
+exit_code: null
+commit: unknown
+dirty: null
+command: "./scripts/run_pipeline.sh --steps 1; later ./scripts/run_pipeline.sh --steps 2,4"
+seed: null
+backfilled: true
+source: "studies/cifar100-port-audit/cifar100/pg_project_output/runs/run01_2026-09-16_rtx2080_S1/README.md; studies/cifar100-port-audit/LOG.md entries 2026-09-16 and 2026-09-18; step-log folder name logs/20260916-003123 listed in studies/cifar100-port-audit/cifar100/pg_project_output/runs/run02_2026-09-28_rtx2080_S50_fixes/RUN_INFO.md"
+outputs_dir: studies/cifar100-port-audit/cifar100/pg_project_output/runs/run01_2026-09-16_rtx2080_S1
+branch: cifar_100
+gpu: NVIDIA GeForce RTX 2080 8 GB, driver 535.309.01 (CUDA 12.2)
+python: "3.10"
+torch: 2.5.1+cu121
+notes: >-
+  Run 01 used the fork's code unchanged (S = 1, prefix-copy rebuild_fc). It trained Conv2Net
+  (step 1, 165 epochs, best test accuracy 52.52%) and, after a failed first attempt at step 2 when
+  /home filled up, ran steps 2 and 4 on 2026-09-18; steps 3, 5 and 6 were not run. The README names
+  two commits on cifar_100 (ee13aae and b4a42c0) without saying which step used which, so commit is
+  recorded as unknown. The start time comes from the step-log folder name; the timezone is assumed
+  to be the server's +05:30. The command is reconstructed from LOG.md, which quotes the step-1
+  command. No seed is set in the training script.

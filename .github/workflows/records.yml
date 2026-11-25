@@ -1,0 +1,8 @@
+# Validates records on every push and pull request (standards/RECORDS.md).
+name: records
+on:
+  push:
+  pull_request:
+jobs:
+  validate:
+    uses: NeuroPulse-Co/.github/.github/workflows/validate-records.yml@main

@@ -1,0 +1,107 @@
+## Verdict
+
+We asked whether Artificial Structure Function Search (ASF-S), the pruning method we build on,
+picks better neurons than simple weight-magnitude pruning in the paper's smallest experiment: a
+LeNet-300-100 network on MNIST. This was the proposal's Phase-1 sanity check, meant to be quick and
+cheap before the larger reproductions. The answer is no. The paper's own checkpoint reproduces its
+reported baseline exactly (98.51% test accuracy, 266,610 parameters, 532,400 FLOPs), but on one
+checkpoint and one fine-tuning seed no ASF-S variant beats L1 or L2 magnitude pruning at any
+sparsity we tried. The paper's claim of no accuracy drop at 70% sparsity also holds only when we
+fine-tune every layer, not when we retrain just the output layer. The hypothesis did not hold.
+
+## Evidence
+
+We pruned neurons of the first hidden layer (fc1, 300 neurons) to the same sparsity for every
+method, so that methods are compared at equal numbers of kept neurons. We then measured accuracy
+in three settings: no fine-tuning, retraining only the output layer (fc3) with the pruned layers
+frozen, and fine-tuning all layers. We split the MNIST test set into two class-balanced halves: an
+"analysis" half that builds the first principal gradient (PG1) and drives early stopping, and an
+"evaluation" half that is used only to report accuracy. The unpruned model scores 98.34% on the
+evaluation half. With 5,000 evaluation images, differences below about 0.7 points should not be
+read as real.
+
+We compared three ASF-S variants. `as_coded` keeps every behaviour of the authors' code.
+`asf_fc2` and `asf_fc3` are two dimensionally consistent readings of the paper's Equation 12, which
+cannot be computed exactly as written (the [README](README.md) in this folder lists the ten
+differences from the original code and why we made each one). The table below gives
+evaluation-half accuracy (%, test data, one fine-tuning seed; random pruning is the mean and
+standard deviation over five seeds).
+
+| fc1 pruned | Setting | asf_fc3 | asf_fc2 | as_coded | L1 | L2 | Random (5 seeds) |
+|---|---|---|---|---|---|---|---|
+| 70% | no fine-tuning | 94.10 | 93.50 | 92.82 | 97.22 | 97.44 | 75.7 ± 4.0 |
+| 70% | output layer only | 97.40 | 97.10 | 96.66 | 97.86 | 97.82 | 92.1 ± 1.1 |
+| 70% | all layers | 98.14 | 98.32 | 97.84 | 98.10 | 98.16 | 97.8 ± 0.3 |
+| 90% | no fine-tuning | 57.53 | 61.19 | 60.77 | 72.03 | 68.13 | 31.7 ± 4.3 |
+| 90% | output layer only | 84.24 | 89.10 | 86.40 | 90.48 | 91.20 | 68.4 ± 3.7 |
+| 90% | all layers | 96.44 | 97.36 | 97.36 | 96.86 | 97.00 | 96.5 ± 0.3 |
+
+Three things stand out. First, ASF-S beats random pruning by a wide margin whenever the pruned
+layers are frozen, so the scores do carry information. Second, magnitude pruning is equal to or
+better than every ASF-S variant in every frozen setting, by 3 to 8 points at 70% to 90% sparsity
+without fine-tuning. Third, when all layers are fine-tuned, every method, random included, recovers
+to within about one point, so MNIST with full fine-tuning cannot tell the methods apart.
+
+We then compared our results directly with the paper's LeNet claims:
+
+| Paper claim | Paper | Our result | Reproduced? |
+|---|---|---|---|
+| Baseline (Table 4) | 98.51%, 267K parameters, 0.53 MFLOPs | 98.51%, 266,610 parameters, 532,400 FLOPs | Yes, exactly |
+| Four principal components explain about 90% of the variance (Appendix C.3) | about 90% | 92% (asf_fc3) | Yes |
+| 70% sparsity with no accuracy drop (Table 1) | 0 points | −0.02 to −0.50 with all layers fine-tuned; −0.94 to −1.68 with the output layer only | Only with full fine-tuning |
+| About 95% of parameters removed (Table 5) | −2.89 points | −2.64 to −3.62 points (all layers fine-tuned, 94.6% removed) | Yes, close |
+| ASF-S beats L2 magnitude (Table 5, Appendix B.2) | see the note below | L2 is equal or better at every sparsity | No |
+| Threshold 0.8 removes 97% of parameters with accuracy within 4 points (Appendix B.1) | within 4 points | −4.3 points (asf_fc3, all layers fine-tuned) to −73 points | No |
+
+To be fair to the authors, the paper's own LeNet row in Table 5 already lists L2 at −1.80 points
+against ASF-S at −2.89, so our magnitude result agrees with their numbers even though the text
+presents ASF-S as the stronger method. The script behind the paper's MNIST numbers is not in the
+original repository, so its fine-tuning mode is unknown; the pattern above is consistent with those
+numbers coming from full fine-tuning.
+
+We have no figure to show here. `plot_results.py` writes `results/accuracy_vs_sparsity.png`, but
+neither that figure nor the results CSVs were committed, so every number on this page comes from
+the tables the study owner recorded in this folder's README.
+
+## Why we think this happened
+
+Any score of the form in the paper's Equation 12 is a dot product between PG1 and a neuron's
+weights, so it grows with the size of those weights. We measured a Spearman rank correlation of
+0.85 to 0.93 between the ASF-S rankings and plain L1 or L2 magnitude. The clearest hint is the
+`as_coded` variant: because of a truncation in the original code, it reads only weights attached to
+blank background pixels, yet it performs close to the consistent variants. That points to the
+weight-size factor, not PG1, doing most of the work. We are fairly confident in this reading, but
+we have not yet run the test that would settle it: a magnitude-free score, such as the cosine
+between a neuron's outgoing weights and PG1. If that score still beat random pruning by a wide
+margin, we would credit PG1 with more.
+
+We also found that PG1 needs care to be meaningful at all. With the authors' kernel width
+(σ = 0.1), the fc2 unit graph falls into 15 to 22 disconnected pieces, so PG1 is not unique; we
+used σ = 0.5, the smallest value that connects the graph for both fc2 and fc3. Once PG1 is well
+defined on the output layer, its contrast between correct and incorrect predictions does point at
+the digits the model really confuses (4 with 9, 7 with 2) for 9 of the 10 classes, so PG1 is not
+noise. It simply adds little on top of magnitude when choosing which neurons to keep.
+
+## Limits
+
+- We used one checkpoint and one fine-tuning seed. Only random pruning has five seeds. Differences
+  below about 0.7 points are within measurement noise on 5,000 evaluation images.
+- We pruned only fc1, at one kernel width (σ = 0.5).
+- `asf_fc2` and `asf_fc3` are our readings of Equation 12, not the paper's literal formula.
+- PG1 is built from the analysis half of the MNIST test set, because the checkpoint is 99.97%
+  accurate on the training set and leaves almost no misclassified training images. Early stopping
+  also uses that half. Reported numbers come from the other, untouched half, but strictly both
+  halves are test data.
+- The results CSVs and figures were not committed, so we cannot re-check the tables against raw
+  files. The numbers are as recorded in the README on 2026-10-21.
+- MNIST is easy enough that full fine-tuning hides almost any pruning choice, so this study says
+  little about harder datasets or larger networks.
+
+## What this means for the project
+
+This sanity check gave the project an early, clear warning: ASF-S scores behave much like weight
+magnitude, so magnitude pruning, not random selection, is the fair baseline for every later study.
+That lesson carries into the CIFAR-10 reproduction (`cifar10-repro`) and into the Artificial
+Functional Connectivity (AFC) pruning protocol in workstream W2, where L1 magnitude is a required
+comparison. The natural follow-up, a magnitude-free ASF-S score on this same small network, is
+still open and would be a cheap way to measure what PG1 adds on its own.

@@ -1,0 +1,24 @@
+# Backfilled by hand from gate.json and LOG.md; see source and notes.
+id: 20261020-1716-server-run01-step6
+study: cifar10-repro
+author: Dewmina Wijekoon
+host: server
+started: '2026-10-20T17:16:24+05:30'
+finished: null
+exit_code: null
+commit: unknown
+dirty: null
+command: ./cifar10/run.sh 6
+seed: null
+backfilled: true
+source: studies/cifar10-repro/outputs/run01/conv2net_paper/step6_pgi/gate.json; studies/cifar10-repro/LOG.md;
+  log file names in studies/cifar10-repro/outputs/run01/logs/
+outputs_dir: ~/asfs_outputs/run01/conv2net_paper/step6_pgi
+gpu: NVIDIA GeForce RTX 2080
+torch: 2.5.1+cu121
+notes: 'Committed copy of the small outputs: studies/cifar10-repro/outputs/run01/conv2net_paper/step6_pgi/.
+  Run id uses gate.json time 2026-10-20 17:16:27; started is taken from the server log file name; finish
+  time unknown (server local time, +05:30 assumed). Commands were run from the old cifar10/ folder (now
+  studies/cifar10-repro/). Aligned PGI mode. Gate PASS. Originally written to ~/NeuroPulseCo/ASF-S/cifar10/outputs/run01/conv2net_paper/step6_pgi
+  on the server; the LOG (2026-10-21) records moving that folder to ~/asfs_outputs, which is where outputs_dir
+  points.'
