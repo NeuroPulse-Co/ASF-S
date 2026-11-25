@@ -63,7 +63,8 @@ def save_activations(model, layer_names, inputs, labels, save_dir,
 
         # Only now move to CPU for saving
         torch.save(
-            {"input":       inputs[i].cpu(),
+            # clone: inputs[i] is a view, and torch.save would write the whole batch
+            {"input":       inputs[i].clone(),
              "activations": {n: a[i].cpu() for n, a in acts.items()},
              "correct":     ok},
             os.path.join(save_dir, f"{prefix}_input{i}.pt"),

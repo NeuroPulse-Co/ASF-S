@@ -17,6 +17,12 @@ cifar100/pg_project_output/pg_data/*
 !cifar100/pg_project_output/pg_data/pg1_summary.csv
 cifar100/pg_project_output/results/pruned_models/
 cifar100/pg_project_output/trained_models/
+# Archived runs (see docs/cifar100-status.md): same rules as the live dirs above
+cifar100/pg_project_output/runs/*/pg_data/*
+!cifar100/pg_project_output/runs/*/pg_data/pg1_summary.csv
+cifar100/pg_project_output/runs/*/results/pruned_models/
+cifar100/pg_project_output/runs/*/trained_models/
+cifar100/pg_project_output/runs/*/activations/
 cifar100_pg_gpu.zip
 
 # Python bytecode
@@ -41,5 +47,3 @@ cifar10/outputs/**/*.npy
 # Seed paper text (NeurIPS submission, "do not distribute") – local reference only
 ASF-S.md
 main.tex
-# Run archives left behind when switching from the cifar_100 branch
-cifar100/pg_project_output/runs/

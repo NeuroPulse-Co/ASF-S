@@ -20,7 +20,7 @@ from config import (TRAINED_MODELS_DIR, RESULTS_DIR, DATA_DIR,
 from models import Conv2Net, Conv6Net, VGG16CIFAR
 from pruning_utils import (prune_conv, prune_bn, update_next_conv_in,
                             rebuild_fc, eval_acc, compute_ece,
-                            fine_tune_fc, hrank_scores)
+                            fine_tune_fc, hrank_scores, count_params)
 
 SEED = 42
 torch.manual_seed(SEED); np.random.seed(SEED); random.seed(SEED)
@@ -85,9 +85,10 @@ def run_hrank(model_name):
     base.load_state_dict(torch.load(ckpt, map_location=device))
     base.eval()
 
-    base_macs, base_params = get_model_complexity_info(
+    base_macs, _ = get_model_complexity_info(
         base, (3,32,32), as_strings=False, verbose=False)
-    base_flops = 2 * base_macs
+    base_flops  = 2 * base_macs
+    base_params = count_params(base)
 
     csv_path    = os.path.join(RESULTS_DIR, f"hrank_{model_name}_cifar100.csv")
     file_exists = os.path.exists(csv_path)
@@ -120,7 +121,7 @@ def run_hrank(model_name):
                 setattr(m, next_a,
                         update_next_conv_in(idx, getattr(m, next_a), device=str(device)))
 
-        m = rebuild_fc(m, first_fc, device=str(device))
+        m = rebuild_fc(m, first_fc, idx, device=str(device))   # idx: last conv's kept channels
 
         print(f"  ratio={ratio:.2f}: evaluating before fine-tune...", flush=True)
         pre_acc  = eval_acc(m, val_loader, device=str(device))
@@ -131,7 +132,8 @@ def run_hrank(model_name):
                                      verbose_every=1)
 
         print(f"  ratio={ratio:.2f}: measuring FLOPs/ECE and saving...", flush=True)
-        macs, params = get_model_complexity_info(m, (3,32,32), as_strings=False, verbose=False)
+        macs, _   = get_model_complexity_info(m, (3,32,32), as_strings=False, verbose=False)
+        params    = count_params(m)
         flops     = 2 * macs
         ece       = compute_ece(m, val_loader, device=str(device))
         flops_red = 100*(base_flops-flops)/base_flops

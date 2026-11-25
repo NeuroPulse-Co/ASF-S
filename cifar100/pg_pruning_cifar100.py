@@ -26,7 +26,8 @@ from config import (TRAINED_MODELS_DIR, RESULTS_DIR, DATA_DIR, PG_DIR,
                     CIFAR100_MEAN, CIFAR100_STD, NUM_CLASSES, PG_FC_LAYER)
 from models import Conv2Net, Conv6Net, VGG16CIFAR
 from pruning_utils import (prune_conv, prune_bn, update_next_conv_in,
-                            rebuild_fc, eval_acc, compute_ece, fine_tune_fc)
+                            rebuild_fc, eval_acc, compute_ece, fine_tune_fc,
+                            count_params)
 
 SEED = 42
 torch.manual_seed(SEED); np.random.seed(SEED); random.seed(SEED)
@@ -117,7 +118,11 @@ def load_pg_diffs(model_name, fc_layer):
         pc = pg_base / f"correct/pg1_data/{cls}_{fc_layer}_pg1.npy"
         pi = pg_base / f"incorrect/pg1_data/{cls}_{fc_layer}_pg1.npy"
         if pc.exists() and pi.exists():
-            diffs.append(np.load(pc) - np.load(pi))
+            g_corr, g_incorr = np.load(pc), np.load(pi)
+            # Eigenvector sign is arbitrary: align before the Eq. 9 difference
+            if np.dot(g_corr, g_incorr) < 0:
+                g_incorr = -g_incorr
+            diffs.append(g_corr - g_incorr)
     return np.stack(diffs) if diffs else None
 
 
@@ -132,7 +137,7 @@ def apply_pruning(m, conv_seq, importances, threshold):
         kept[ca] = len(idx)
         if na:
             setattr(m, na, update_next_conv_in(idx, getattr(m, na), device=str(device)))
-    return kept
+    return kept, idx    # idx = kept channels of the last conv, for rebuild_fc
 
 
 # ── Main loop ─────────────────────────────────────────────────
@@ -147,9 +152,10 @@ def run_pg(model_name):
     model.load_state_dict(torch.load(ckpt, map_location=device))
     model.eval()
 
-    base_macs, base_params = get_model_complexity_info(
+    base_macs, _ = get_model_complexity_info(
         model, (3,32,32), as_strings=False, verbose=False)
-    base_flops = 2 * base_macs
+    base_flops  = 2 * base_macs
+    base_params = count_params(model)
 
     fc_layer = PG_FC_LAYER[model_name]
     diffs    = load_pg_diffs(model_name, fc_layer)
@@ -193,7 +199,7 @@ def run_pg(model_name):
                 nb = prune_bn(getattr(m,ba), idx, device=str(device))
                 setattr(m,ca,nc); setattr(m,ba,nb); kept[ca]=len(idx)
                 if na: setattr(m,na,update_next_conv_in(idx,getattr(m,na),device=str(device)))
-            return m, kept
+            return m, kept, idx
         extra = lambda a: {"threshold_conv1": a[0], "threshold_conv2": a[1]}
         label = lambda a: f"({a[0]},{a[1]})"
         fname = lambda a: f"thr{a[0]:.2f}_{a[1]:.2f}.pth"
@@ -201,7 +207,7 @@ def run_pg(model_name):
         grid  = [(t,) for t in THRESHOLDS]
         def run_one(args):
             m = copy.deepcopy(model).to(device)
-            return m, apply_pruning(m, conv_seq, importances, args[0])
+            return (m, *apply_pruning(m, conv_seq, importances, args[0]))
         extra = lambda a: {"threshold": a[0]}
         label = lambda a: str(a[0])
         fname = lambda a: f"thr{a[0]:.2f}.pth"
@@ -211,8 +217,8 @@ def run_pg(model_name):
     for step, args in enumerate(grid, start=1):
         print(f"\n  [{step}/{len(grid)}] threshold={label(args)}: pruning layers...",
               flush=True)
-        m, kept = run_one(args)
-        m = rebuild_fc(m, first_fc, device=str(device))
+        m, kept, last_idx = run_one(args)
+        m = rebuild_fc(m, first_fc, last_idx, device=str(device))
 
         for ca, ba, _ in conv_seq:
             for p in getattr(m,ca).parameters(): p.requires_grad=False
@@ -233,7 +239,8 @@ def run_pg(model_name):
         print(f"  [{step}/{len(grid)}] threshold={label(args)}: "
               "measuring FLOPs/ECE and saving...",
               flush=True)
-        macs, params = get_model_complexity_info(m, (3,32,32), as_strings=False, verbose=False)
+        macs, _   = get_model_complexity_info(m, (3,32,32), as_strings=False, verbose=False)
+        params    = count_params(m)
         flops     = 2*macs
         ece       = compute_ece(m, val_loader, device=str(device))
         flops_red = 100*(base_flops-flops)/base_flops
