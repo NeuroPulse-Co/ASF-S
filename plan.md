@@ -12,7 +12,12 @@ The NeuroPulse-Co org (FYP: structure-function-aware pruning for continual learn
 
 **Precondition (from you):** before anything is published, every repo needs **one unified way to write logs and results**. The site only renders what that standard produces, so anyone (or any new repo) starting mid-project only has to follow the standard.
 
-## ✅ P1 built locally 2026-11-25 (awaiting push by user). Detail kept below for reference.
+## Status (2026-11-25)
+- ✅ P1 built locally: `.github` + `research-template` (awaiting push by user).
+- ✅ P2 done locally: ASF-S restructured on branch `restructure` (4 studies, records, showcase); AFC-Prune split out with history (S0 closed, S1 running; gradient tiers interrupted by server outage). Standard change: `split: none` allowed for non-data numbers.
+- ⏭ Next: P3 (Astro site).
+
+### P1 detail (kept for reference)
 
 I build the files locally as two sibling folders next to ASF-S, each with `git init` and nothing committed:
 - `/home/dewmina-wijekoon/UoM/FYP_NeuroPulse/NeuroPulse-Co/.github/`

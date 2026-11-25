@@ -18,7 +18,7 @@
 - id: W2
   title: AFC pruning protocol
   question: Under a careful evaluation protocol, does preserving Artificial Functional Connectivity (AFC) select better filters than simple scores such as weight magnitude?
-  repos: [ASF-S]          # moves to AFC-Prune after the P2 restructure
+  repos: [AFC-Prune]
   owner: TBD
 
 - id: W3

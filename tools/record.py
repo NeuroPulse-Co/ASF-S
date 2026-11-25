@@ -52,7 +52,7 @@ STATUSES = ["planned", "running", "closed-positive", "closed-negative",
             "closed-inconclusive", "abandoned"]
 CLOSED = {"closed-positive", "closed-negative", "closed-inconclusive"}
 CRITERIA = ["pre_registered", "post_hoc"]
-SPLITS = ["val", "test"]
+SPLITS = ["val", "test", "none"]   # none: not measured on data (parameter counts, test suites)
 SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 TAG_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]*$")
 RUN_ID_RE = re.compile(r"^\d{8}-\d{4}-[A-Za-z0-9-]+-[A-Za-z0-9_.-]+$")

@@ -4,7 +4,7 @@ This repository is where we tried to reproduce **Artificial Structure Function S
 
 Part of **NeuroPulse**, a final-year research project on structure-function-aware pruning for continual learning at the University of Moratuwa. Project site: https://neuropulse-co.github.io · Organisation: https://github.com/NeuroPulse-Co
 
-**Workstream:** W1, Reproducing ASF-S. The follow-on work, a careful comparison of AFC-based filter selection against simple scores (W2), lives in the `afcprune/` folder for now and is moving to its own repository, **AFC-Prune**.
+**Workstream:** W1, Reproducing ASF-S. The follow-on work, a careful comparison of AFC-based filter selection against simple scores (W2), lives in its own repository, [**AFC-Prune**](https://github.com/NeuroPulse-Co/AFC-Prune). Its history up to 2026-11-25 is also in this repository's history under `afcprune/`.
 
 ## Studies
 
@@ -24,7 +24,6 @@ Each study folder has a `study.yaml` (question, hypothesis, verdict, headline nu
 | Path | What it is |
 |---|---|
 | `studies/<id>/` | One folder per study: its code, records and small results |
-| `afcprune/` | The AFC pruning protocol (W2). It is moving to the AFC-Prune repository. |
 | `reference/min_scripts/` | The authors' original CIFAR-10 scripts, shared with their permission. We treat them as the specification of what was actually computed. |
 | `archive/` | Files no longer in use that the logs still refer to |
 | `showcase/` | Generated pages that the project website publishes (do not edit by hand) |

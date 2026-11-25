@@ -1,7 +1,0 @@
-{
- "check": "run01 reproduction: pgi_aligned @ (19,16), T1fc \u0394Acc = \u221210.50 \u00b1 0.5",
- "ours": -10.47,
- "ref": -10.5,
- "tol": 0.5,
- "passed": true
-}

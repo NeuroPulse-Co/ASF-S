@@ -1,5 +1,0 @@
-.venv/
-data/
-outputs/
-*.pth
-!tests/golden/*.npz
