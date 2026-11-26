@@ -65,3 +65,26 @@ notes: >-
   --thresholds 0.1,...,0.9 --epochs 2 --lr 5e-4 --batch_size 32;
   full: python main.py --stage sweep --target_layers 0,5,11 --thresholds 0.1,...,0.9 --epochs 2
   --lr 2e-5 --batch_size 32.
+evidence:
+  - type: diagram
+    source: diagrams/method.excalidraw.svg
+    title: How we moved PG pruning from images to a language model
+    caption: >-
+      We fine-tuned BERT-base on the AG News topic task in two ways, once with the encoder frozen
+      and once with every layer trained, and recorded the feed-forward (FFN) neuron activations in
+      layers 0, 5 and 11. The blue step is the principal-gradient (PG) score, which compares how
+      those neurons behave on correctly and incorrectly classified examples. We removed the
+      lowest-scoring neurons, retrained and measured test accuracy. The later four-method
+      comparison against random and weight-magnitude choices retrained only the classifier.
+  - type: table
+    source: sweep_results.csv
+    columns: {model_mode: Starting model, threshold: PG threshold, pruned_pct_overall: "Neurons removed in layers 0, 5, 11 (%)", baseline_acc: Unpruned accuracy, postprune_acc: Accuracy after pruning, best_retrain_acc: Accuracy after retraining}
+    labels: {head: "Head-only (encoder frozen)", full: Fully fine-tuned}
+    split: test
+    title: Every setting in the committed PG sweep
+    caption: >-
+      PG pruning of BERT's feed-forward neurons, one seed; accuracies are fractions of the AG News
+      test set. Even the lowest threshold removes more than 96% of the neurons in the three
+      layers. In the fully fine-tuned model, accuracy after retraining stays within about 0.3
+      points of the unpruned 0.945 at every threshold, so this sweep cannot tell PG apart from
+      any other way of choosing neurons.

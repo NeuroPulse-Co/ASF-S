@@ -64,6 +64,537 @@ key_results:
   compare:
     label: keeping the highest-L1-norm filters at the same counts
     value: 42.1
+evidence:
+- type: diagram
+  title: Where the bugs sat in the authors' code path
+  caption: 'Read the seven steps from top to bottom, in the order the ported scripts run Artificial Structure
+    Function Search (ASF-S) on CIFAR-100. The amber steps are where our audit found problems. We fixed
+    three before run 02: the first principal gradient (PG1) built from one image, the classifier rebuild,
+    and the parameter count. We left the dashed one unchanged: the test set decides when fine-tuning stops,
+    so every accuracy we report is the best test accuracy seen during fine-tuning, not a clean held-out
+    estimate.'
+  src: ../figures/cifar100-port-audit/evidence-01-where-the-bugs-sat-in-the-authors-code-path.svg
+  source_url: https://github.com/NeuroPulse-Co/ASF-S/blob/main/studies/cifar100-port-audit/diagrams/method.excalidraw.svg
+- type: table
+  title: The other pruning methods, rerun on our fixed code
+  caption: Four pruning methods from the authors' code, one seed each. At about 70% of parameters removed,
+    network slimming reaches 37.02%, SVD 33.99% and SNOWS 32.34%. ASF-S at a similar size (10 and 20 filters
+    kept, 69.0% removed) reaches 32.00%, so it does not beat them. Each accuracy is the best test accuracy
+    seen during fine-tuning, because the code uses the test set to decide when to stop; this flatters
+    every method equally.
+  split: test
+  columns:
+  - key: method
+    label: Method
+  - key: kept_conv1
+    label: Filters kept, layer 1 (of 32)
+  - key: kept_conv2
+    label: Filters kept, layer 2 (of 64)
+  - key: param_red_pct
+    label: Parameters removed (%)
+  - key: val_acc
+    label: Accuracy (%)
+  labels:
+    sliming: Network slimming
+    svd: SVD
+    snows: SNOWS
+    hrank: HRank
+  rows:
+  - method: sliming
+    kept_conv1: 10
+    kept_conv2: 19
+    param_red_pct: 70.5342
+    val_acc: 37.02
+  - method: svd
+    kept_conv1: 10
+    kept_conv2: 19
+    param_red_pct: 70.5342
+    val_acc: 33.99
+  - method: snows
+    kept_conv1: 10
+    kept_conv2: 19
+    param_red_pct: 70.5342
+    val_acc: 32.34
+  - method: hrank
+    kept_conv1: 25
+    kept_conv2: 51
+    param_red_pct: 20.506
+    val_acc: 46.88
+  - method: hrank
+    kept_conv1: 22
+    kept_conv2: 44
+    param_red_pct: 31.4869
+    val_acc: 45.63
+  - method: hrank
+    kept_conv1: 16
+    kept_conv2: 32
+    param_red_pct: 50.2749
+    val_acc: 42.23
+  - method: hrank
+    kept_conv1: 12
+    kept_conv2: 25
+    param_red_pct: 61.2061
+    val_acc: 38.55
+  - method: hrank
+    kept_conv1: 6
+    kept_conv2: 12
+    param_red_pct: 81.4145
+    val_acc: 29.21
+  - method: hrank
+    kept_conv1: 3
+    kept_conv2: 6
+    param_red_pct: 90.714
+    val_acc: 19.68
+  data: ../data/cifar100-port-audit/evidence-02-the-other-pruning-methods-rerun-on-our-fixed-cod.csv
+  source_url: https://github.com/NeuroPulse-Co/ASF-S/tree/main/studies/cifar100-port-audit/cifar100/pg_project_output/runs/run03_2026-09-29_baselines/results
+- type: table
+  title: Every ASF-S setting we tried, after fixing the code
+  caption: ASF-S at 81 combinations of pruning thresholds, one seed, with only the final layer fine-tuned.
+    The best result with about two thirds of the parameters removed is 40.46% (30 and 20 filters kept,
+    68.7% removed), against 52.52% for the unpruned network. As before, each accuracy is the best test
+    accuracy seen during fine-tuning.
+  split: test
+  columns:
+  - key: kept_conv1
+    label: Filters kept, layer 1 (of 32)
+  - key: kept_conv2
+    label: Filters kept, layer 2 (of 64)
+  - key: total_param_red_pct
+    label: Parameters removed (%)
+  - key: pre_acc
+    label: Accuracy before fine-tuning (%)
+  - key: val_acc
+    label: Accuracy after fine-tuning (%)
+  rows:
+  - kept_conv1: 10
+    kept_conv2: 3
+    total_param_red_pct: 95.3272
+    pre_acc: 1.01
+    val_acc: 13.97
+  - kept_conv1: 10
+    kept_conv2: 47
+    total_param_red_pct: 27.1466
+    pre_acc: 1.93
+    val_acc: 40.67
+  - kept_conv1: 10
+    kept_conv2: 31
+    total_param_red_pct: 51.9395
+    pre_acc: 1.1
+    val_acc: 35.91
+  - kept_conv1: 10
+    kept_conv2: 20
+    total_param_red_pct: 68.9847
+    pre_acc: 1.26
+    val_acc: 32.0
+  - kept_conv1: 10
+    kept_conv2: 9
+    total_param_red_pct: 86.0298
+    pre_acc: 1.5
+    val_acc: 23.64
+  - kept_conv1: 10
+    kept_conv2: 5
+    total_param_red_pct: 92.2281
+    pre_acc: 1.1
+    val_acc: 18.39
+  - kept_conv1: 10
+    kept_conv2: 57
+    total_param_red_pct: 11.651
+    pre_acc: 2.49
+    val_acc: 41.57
+  - kept_conv1: 10
+    kept_conv2: 2
+    total_param_red_pct: 96.8768
+    pre_acc: 1.14
+    val_acc: 10.82
+  - kept_conv1: 10
+    kept_conv2: 2
+    total_param_red_pct: 96.8768
+    pre_acc: 1.14
+    val_acc: 10.79
+  - kept_conv1: 26
+    kept_conv2: 3
+    total_param_red_pct: 95.2722
+    pre_acc: 1.53
+    val_acc: 13.86
+  - kept_conv1: 26
+    kept_conv2: 47
+    total_param_red_pct: 26.7094
+    pre_acc: 9.77
+    val_acc: 47.3
+  - kept_conv1: 26
+    kept_conv2: 31
+    total_param_red_pct: 51.6414
+    pre_acc: 5.77
+    val_acc: 43.86
+  - kept_conv1: 26
+    kept_conv2: 20
+    total_param_red_pct: 68.782
+    pre_acc: 2.6
+    val_acc: 38.3
+  - kept_conv1: 26
+    kept_conv2: 9
+    total_param_red_pct: 85.9227
+    pre_acc: 1.6
+    val_acc: 29.33
+  - kept_conv1: 26
+    kept_conv2: 5
+    total_param_red_pct: 92.1557
+    pre_acc: 1.23
+    val_acc: 20.16
+  - kept_conv1: 26
+    kept_conv2: 57
+    total_param_red_pct: 11.127
+    pre_acc: 20.2
+    val_acc: 48.84
+  - kept_conv1: 26
+    kept_conv2: 2
+    total_param_red_pct: 96.8304
+    pre_acc: 1.57
+    val_acc: 10.21
+  - kept_conv1: 26
+    kept_conv2: 2
+    total_param_red_pct: 96.8304
+    pre_acc: 1.57
+    val_acc: 10.36
+  - kept_conv1: 24
+    kept_conv2: 3
+    total_param_red_pct: 95.2791
+    pre_acc: 1.38
+    val_acc: 12.72
+  - kept_conv1: 24
+    kept_conv2: 47
+    total_param_red_pct: 26.7641
+    pre_acc: 7.08
+    val_acc: 46.66
+  - kept_conv1: 24
+    kept_conv2: 31
+    total_param_red_pct: 51.6786
+    pre_acc: 3.49
+    val_acc: 43.06
+  - kept_conv1: 24
+    kept_conv2: 20
+    total_param_red_pct: 68.8074
+    pre_acc: 1.77
+    val_acc: 37.53
+  - kept_conv1: 24
+    kept_conv2: 9
+    total_param_red_pct: 85.9361
+    pre_acc: 1.52
+    val_acc: 28.58
+  - kept_conv1: 24
+    kept_conv2: 5
+    total_param_red_pct: 92.1648
+    pre_acc: 1.25
+    val_acc: 19.51
+  - kept_conv1: 24
+    kept_conv2: 57
+    total_param_red_pct: 11.1925
+    pre_acc: 12.56
+    val_acc: 47.83
+  - kept_conv1: 24
+    kept_conv2: 2
+    total_param_red_pct: 96.8362
+    pre_acc: 1.53
+    val_acc: 9.96
+  - kept_conv1: 24
+    kept_conv2: 2
+    total_param_red_pct: 96.8362
+    pre_acc: 1.53
+    val_acc: 9.79
+  - kept_conv1: 22
+    kept_conv2: 3
+    total_param_red_pct: 95.2859
+    pre_acc: 1.01
+    val_acc: 12.09
+  - kept_conv1: 22
+    kept_conv2: 47
+    total_param_red_pct: 26.8187
+    pre_acc: 4.16
+    val_acc: 44.82
+  - kept_conv1: 22
+    kept_conv2: 31
+    total_param_red_pct: 51.7159
+    pre_acc: 1.97
+    val_acc: 40.97
+  - kept_conv1: 22
+    kept_conv2: 20
+    total_param_red_pct: 68.8327
+    pre_acc: 1.69
+    val_acc: 35.56
+  - kept_conv1: 22
+    kept_conv2: 9
+    total_param_red_pct: 85.9495
+    pre_acc: 1.25
+    val_acc: 26.4
+  - kept_conv1: 22
+    kept_conv2: 5
+    total_param_red_pct: 92.1738
+    pre_acc: 1.0
+    val_acc: 19.33
+  - kept_conv1: 22
+    kept_conv2: 57
+    total_param_red_pct: 11.258
+    pre_acc: 4.29
+    val_acc: 47.28
+  - kept_conv1: 22
+    kept_conv2: 2
+    total_param_red_pct: 96.842
+    pre_acc: 1.21
+    val_acc: 9.97
+  - kept_conv1: 22
+    kept_conv2: 2
+    total_param_red_pct: 96.842
+    pre_acc: 1.21
+    val_acc: 10.11
+  - kept_conv1: 17
+    kept_conv2: 3
+    total_param_red_pct: 95.3031
+    pre_acc: 1.19
+    val_acc: 13.42
+  - kept_conv1: 17
+    kept_conv2: 47
+    total_param_red_pct: 26.9553
+    pre_acc: 2.92
+    val_acc: 40.99
+  - kept_conv1: 17
+    kept_conv2: 31
+    total_param_red_pct: 51.8091
+    pre_acc: 1.67
+    val_acc: 38.79
+  - kept_conv1: 17
+    kept_conv2: 20
+    total_param_red_pct: 68.896
+    pre_acc: 1.22
+    val_acc: 34.14
+  - kept_conv1: 17
+    kept_conv2: 9
+    total_param_red_pct: 85.983
+    pre_acc: 1.23
+    val_acc: 25.98
+  - kept_conv1: 17
+    kept_conv2: 5
+    total_param_red_pct: 92.1964
+    pre_acc: 1.25
+    val_acc: 18.02
+  - kept_conv1: 17
+    kept_conv2: 57
+    total_param_red_pct: 11.4217
+    pre_acc: 3.65
+    val_acc: 43.58
+  - kept_conv1: 17
+    kept_conv2: 2
+    total_param_red_pct: 96.8565
+    pre_acc: 1.53
+    val_acc: 11.46
+  - kept_conv1: 17
+    kept_conv2: 2
+    total_param_red_pct: 96.8565
+    pre_acc: 1.53
+    val_acc: 10.73
+  - kept_conv1: 12
+    kept_conv2: 3
+    total_param_red_pct: 95.3203
+    pre_acc: 1.07
+    val_acc: 13.3
+  - kept_conv1: 12
+    kept_conv2: 47
+    total_param_red_pct: 27.0919
+    pre_acc: 2.27
+    val_acc: 40.54
+  - kept_conv1: 12
+    kept_conv2: 31
+    total_param_red_pct: 51.9023
+    pre_acc: 1.32
+    val_acc: 36.82
+  - kept_conv1: 12
+    kept_conv2: 20
+    total_param_red_pct: 68.9594
+    pre_acc: 1.18
+    val_acc: 31.93
+  - kept_conv1: 12
+    kept_conv2: 9
+    total_param_red_pct: 86.0165
+    pre_acc: 1.42
+    val_acc: 23.86
+  - kept_conv1: 12
+    kept_conv2: 5
+    total_param_red_pct: 92.219
+    pre_acc: 1.25
+    val_acc: 18.45
+  - kept_conv1: 12
+    kept_conv2: 57
+    total_param_red_pct: 11.5855
+    pre_acc: 2.26
+    val_acc: 41.72
+  - kept_conv1: 12
+    kept_conv2: 2
+    total_param_red_pct: 96.871
+    pre_acc: 1.43
+    val_acc: 11.02
+  - kept_conv1: 12
+    kept_conv2: 2
+    total_param_red_pct: 96.871
+    pre_acc: 1.43
+    val_acc: 11.36
+  - kept_conv1: 30
+    kept_conv2: 3
+    total_param_red_pct: 95.2584
+    pre_acc: 1.85
+    val_acc: 16.23
+  - kept_conv1: 30
+    kept_conv2: 47
+    total_param_red_pct: 26.6002
+    pre_acc: 21.38
+    val_acc: 49.18
+  - kept_conv1: 30
+    kept_conv2: 31
+    total_param_red_pct: 51.5668
+    pre_acc: 13.64
+    val_acc: 45.75
+  - kept_conv1: 30
+    kept_conv2: 20
+    total_param_red_pct: 68.7314
+    pre_acc: 5.9
+    val_acc: 40.46
+  - kept_conv1: 30
+    kept_conv2: 9
+    total_param_red_pct: 85.8959
+    pre_acc: 2.79
+    val_acc: 29.59
+  - kept_conv1: 30
+    kept_conv2: 5
+    total_param_red_pct: 92.1376
+    pre_acc: 1.4
+    val_acc: 22.19
+  - kept_conv1: 30
+    kept_conv2: 57
+    total_param_red_pct: 10.996
+    pre_acc: 33.67
+    val_acc: 51.12
+  - kept_conv1: 30
+    kept_conv2: 2
+    total_param_red_pct: 96.8189
+    pre_acc: 1.94
+    val_acc: 12.96
+  - kept_conv1: 30
+    kept_conv2: 2
+    total_param_red_pct: 96.8189
+    pre_acc: 1.94
+    val_acc: 13.01
+  - kept_conv1: 6
+    kept_conv2: 3
+    total_param_red_pct: 95.3409
+    pre_acc: 1.02
+    val_acc: 15.25
+  - kept_conv1: 6
+    kept_conv2: 47
+    total_param_red_pct: 27.2559
+    pre_acc: 1.61
+    val_acc: 38.76
+  - kept_conv1: 6
+    kept_conv2: 31
+    total_param_red_pct: 52.0141
+    pre_acc: 1.12
+    val_acc: 36.57
+  - kept_conv1: 6
+    kept_conv2: 20
+    total_param_red_pct: 69.0353
+    pre_acc: 0.93
+    val_acc: 30.24
+  - kept_conv1: 6
+    kept_conv2: 9
+    total_param_red_pct: 86.0566
+    pre_acc: 1.29
+    val_acc: 23.93
+  - kept_conv1: 6
+    kept_conv2: 5
+    total_param_red_pct: 92.2462
+    pre_acc: 1.21
+    val_acc: 17.97
+  - kept_conv1: 6
+    kept_conv2: 57
+    total_param_red_pct: 11.782
+    pre_acc: 1.41
+    val_acc: 40.37
+  - kept_conv1: 6
+    kept_conv2: 2
+    total_param_red_pct: 96.8883
+    pre_acc: 1.05
+    val_acc: 10.97
+  - kept_conv1: 6
+    kept_conv2: 2
+    total_param_red_pct: 96.8883
+    pre_acc: 1.05
+    val_acc: 10.59
+  - kept_conv1: 4
+    kept_conv2: 3
+    total_param_red_pct: 95.3478
+    pre_acc: 1.01
+    val_acc: 16.05
+  - kept_conv1: 4
+    kept_conv2: 47
+    total_param_red_pct: 27.3105
+    pre_acc: 1.22
+    val_acc: 37.79
+  - kept_conv1: 4
+    kept_conv2: 31
+    total_param_red_pct: 52.0513
+    pre_acc: 1.13
+    val_acc: 35.85
+  - kept_conv1: 4
+    kept_conv2: 20
+    total_param_red_pct: 69.0607
+    pre_acc: 1.2
+    val_acc: 28.97
+  - kept_conv1: 4
+    kept_conv2: 9
+    total_param_red_pct: 86.07
+    pre_acc: 1.21
+    val_acc: 22.25
+  - kept_conv1: 4
+    kept_conv2: 5
+    total_param_red_pct: 92.2552
+    pre_acc: 1.04
+    val_acc: 17.94
+  - kept_conv1: 4
+    kept_conv2: 57
+    total_param_red_pct: 11.8475
+    pre_acc: 1.17
+    val_acc: 38.68
+  - kept_conv1: 4
+    kept_conv2: 2
+    total_param_red_pct: 96.8941
+    pre_acc: 0.99
+    val_acc: 13.17
+  - kept_conv1: 4
+    kept_conv2: 2
+    total_param_red_pct: 96.8941
+    pre_acc: 0.99
+    val_acc: 12.58
+  data: ../data/cifar100-port-audit/evidence-03-every-asf-s-setting-we-tried-after-fixing-the-co.csv
+  source_url: https://github.com/NeuroPulse-Co/ASF-S/blob/main/studies/cifar100-port-audit/cifar100/pg_project_output/runs/run02_2026-09-28_rtx2080_S50_fixes/results/pg_conv2net_cifar100.csv
+runs:
+- id: 20260916-0031-intellisense08-EWISPro9900G-run01-conv2net
+  started: '2026-09-16 00:31:00+05:30'
+  host: intellisense08-EWISPro9900G
+  seed: null
+  commit: unknown
+  exit_code: null
+  backfilled: true
+- id: 20260928-1314-intellisense08-EWISPro9900G-run02-conv2net
+  started: '2026-09-28 13:14:00+05:30'
+  host: intellisense08-EWISPro9900G
+  seed: 42
+  commit: 1d43cb7
+  exit_code: null
+  backfilled: true
+- id: 20260929-1207-intellisense08-EWISPro9900G-run03-baselines
+  started: '2026-09-29 12:07:00+05:30'
+  host: intellisense08-EWISPro9900G
+  seed: 42
+  commit: 767f8af
+  exit_code: null
+  backfilled: true
 code_url: https://github.com/NeuroPulse-Co/ASF-S/tree/main/studies/cifar100-port-audit
 ---
 

@@ -54,6 +54,17 @@ key_results:
   compare:
     label: L2 magnitude pruning, same setting
     value: 91.2
+evidence:
+- type: diagram
+  title: How we tested ASF-S on its smallest experiment
+  caption: 'We started from the paper''s own LeNet-300-100 network on MNIST and scored each neuron of
+    the first hidden layer with Artificial Structure Function Search (ASF-S, in blue), and also by weight
+    magnitude and at random. Every method removed the same number of neurons, we retrained only the output
+    layer, and we measured accuracy on a half of the test set that scoring never saw. The amber note is
+    where the paper''s claim failed: at 70% removed, ASF-S as the authors coded it loses 1.68 points,
+    where the paper reports no drop.'
+  src: ../figures/mnist-lenet-sanity/evidence-01-how-we-tested-asf-s-on-its-smallest-experiment.svg
+  source_url: https://github.com/NeuroPulse-Co/ASF-S/blob/main/studies/mnist-lenet-sanity/diagrams/method.excalidraw.svg
 code_url: https://github.com/NeuroPulse-Co/ASF-S/tree/main/studies/mnist-lenet-sanity
 ---
 

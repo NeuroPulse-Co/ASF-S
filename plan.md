@@ -547,12 +547,12 @@ A study page leads with pictures. Text explains them, rather than the other way 
    - Write `standards/DIAGRAMS.md` and `tools/export-diagrams.mjs`, and verify the font export.
    - Sync `record.py` and the export script to every repo.
    - Add an evidence and diagram section to WEBSITE.md.
-3. **Site.**
+3. ✅ **Site**, content side done 2026-11-26 (evidence/runs schema, EvidenceChart, DataTable, EvidenceFigure, visual-first study page, `/research/#records`; first evidence on cifar10-repro). Division of labour, set by the user on 2026-11-26: Claude adds content, data and plain semantic markup only; the user does all visual design with impeccable).
    - Add `EvidenceChart` and `DataTable`, and extend the schema.
    - Reorder the study pages to the visual-first order, and add the runs table.
    - Move the legend and the record explainer to `/research/#records`.
-4. **Homepage.** Rewrite it as the three-chapter story and delete the removed blocks and their CSS. Draft the chapter text from the study records and FINDINGS, using numbers only from study.yaml. The user edits the text.
-5. **Content.**
+4. ✅ (draft text, 2026-11-26; the user edits the text and does the design with impeccable) **Homepage.** Rewrite it as the three-chapter story and delete the removed blocks and their CSS. Draft the chapter text from the study records and FINDINGS, using numbers only from study.yaml. The user edits the text.
+5. ✅ (2026-11-26; diagrams await owner review; MNIST charts wait for its outputs to be harvested from the server) **Content.**
    - Add `evidence:` blocks to the five studies, and check every number against its CSV.
    - Draw the first diagrams following the AI protocol. The study owners review them.
    - Re-promote everything.

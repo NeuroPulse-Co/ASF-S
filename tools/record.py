@@ -566,6 +566,29 @@ def read_csv_rows(path: Path):
         return list(reader.fieldnames or []), list(reader)
 
 
+def ev_sources(ev) -> list[str]:
+    """An evidence item's source: one path, or (charts and tables) a list of CSVs with the same columns."""
+    src = ev.get("source")
+    return [str(x) for x in src] if isinstance(src, list) else ([str(src)] if src else [])
+
+
+def read_csv_many(paths: list[Path]):
+    header, rows = None, []
+    for p in paths:
+        h, r = read_csv_rows(p)
+        header = h if header is None else [c for c in header if c in h]
+        rows += r
+    return header or [], rows
+
+
+def source_url(ctx, study, ev):
+    srcs = ev_sources(ev)
+    if len(srcs) == 1:
+        return code_url(ctx, f"studies/{study}/{srcs[0]}").replace("/tree/", "/blob/")
+    common = os.path.commonpath(srcs) if srcs else ""
+    return code_url(ctx, f"studies/{study}/{common}".rstrip("/"))
+
+
 def cell(v):
     """CSV text to a number when it is one; empty cells become None."""
     if v is None or v == "":
@@ -603,10 +626,15 @@ def check_evidence(rep, path, sdir: Path, items):
             rep.err(path, f + ".type", f"'{t}' must be one of {EVIDENCE_TYPES}")
             continue
         _placeholder(rep, path, ev, ["title", "caption"], prefix=f + ".")
-        src = sdir / str(ev.get("source", ""))
-        if not ev.get("source") or not src.is_file():
-            rep.err(path, f + ".source", f"'{ev.get('source')}' is not a file in the study folder")
+        srcs = ev_sources(ev)
+        missing_src = [x for x in srcs if not (sdir / x).is_file()]
+        if not srcs or missing_src:
+            rep.err(path, f + ".source", f"{missing_src or ev.get('source')!r} is not a file in the study folder")
             continue
+        if len(srcs) > 1 and t not in ("chart", "table"):
+            rep.err(path, f + ".source", "only charts and tables can combine several files")
+            continue
+        src = sdir / srcs[0]
         if t == "diagram":
             if not src.name.endswith(DIAGRAM_SUFFIX):
                 rep.err(path, f + ".source", f"a diagram must be a {DIAGRAM_SUFFIX} file (see DIAGRAMS.md)")
@@ -617,15 +645,17 @@ def check_evidence(rep, path, sdir: Path, items):
             if src.suffix.lower() not in IMAGE_EXT:
                 rep.err(path, f + ".source", f"must be an image ({', '.join(sorted(IMAGE_EXT))})")
         else:
-            if src.suffix.lower() != ".csv":
-                rep.err(path, f + ".source", "must be a .csv file")
+            if any(not x.lower().endswith(".csv") for x in srcs):
+                rep.err(path, f + ".source", "must be .csv files")
                 continue
             if ev.get("split") not in SPLITS:
                 rep.err(path, f + ".split", f"must be one of {SPLITS} (say which data the numbers are from)")
             if "filter" in ev and not isinstance(ev["filter"], dict):
                 rep.err(path, f + ".filter", "must be a mapping {column: value or [values]}")
                 continue
-            header, rows = read_csv_rows(src)
+            if "labels" in ev and not isinstance(ev["labels"], dict):
+                rep.err(path, f + ".labels", "must map raw values to display names")
+            header, rows = read_csv_many([sdir / x for x in srcs])
             if t == "chart":
                 _need(rep, path, ev, ["x", "y", "y_label"], f + ".")
                 if ev.get("kind", "dots") not in CHART_KINDS:
@@ -945,17 +975,17 @@ def promote_evidence(ctx, sdir: Path, study: str, items):
             for old in f.glob("evidence-*"):
                 old.unlink()
     for i, ev in enumerate(items, 1):
-        t, src = ev["type"], sdir / ev["source"]
+        t, src = ev["type"], sdir / ev_sources(ev)[0]
         item = {"type": t, "title": ev["title"], "caption": " ".join(str(ev["caption"]).split())}
         name = f"evidence-{i:02d}-{_slug(ev['title'])}"
         if t in ("diagram", "figure"):
             fig_dir.mkdir(parents=True, exist_ok=True)
             shutil.copy2(src, fig_dir / (name + src.suffix.lower()))
             item["src"] = f"../figures/{study}/{name}{src.suffix.lower()}"
-            item["source_url"] = code_url(ctx, f"studies/{study}/{ev['source']}").replace("/tree/", "/blob/")
+            item["source_url"] = source_url(ctx, study, ev)
             out.append(item)
             continue
-        _, rows = read_csv_rows(src)
+        _, rows = read_csv_many([sdir / x for x in ev_sources(ev)])
         rows = [r for r in rows if row_matches(r, ev.get("filter"))][:EVIDENCE_MAX_ROWS]
         if t == "chart":
             cols = [ev["x"]] + ([ev["series"]] if ev.get("series") else []) + [ev["y"]]
@@ -968,14 +998,18 @@ def promote_evidence(ctx, sdir: Path, study: str, items):
             cols = list(ev["columns"])
             item.update({"split": ev["split"],
                          "columns": [{"key": k, "label": str(v)} for k, v in ev["columns"].items()]})
-        item["rows"] = [{c: cell(r.get(c)) for c in cols} for r in rows]
+            if ev.get("labels") is not None:
+                item["labels"] = ev["labels"]
+        # Chart categories (x, series) stay text, so labels match the CSV exactly ("50.0", not 50).
+        keep_text = {ev.get("x"), ev.get("series")} if t == "chart" else set()
+        item["rows"] = [{c: (r.get(c) if c in keep_text else cell(r.get(c))) for c in cols} for r in rows]
         data_dir.mkdir(parents=True, exist_ok=True)
         with (data_dir / (name + ".csv")).open("w", newline="", encoding="utf-8") as fh:
             w = csv.writer(fh)
             w.writerow(cols)
             w.writerows([[r.get(c, "") for c in cols] for r in rows])
         item["data"] = f"../data/{study}/{name}.csv"
-        item["source_url"] = code_url(ctx, f"studies/{study}/{ev['source']}").replace("/tree/", "/blob/")
+        item["source_url"] = source_url(ctx, study, ev)
         out.append(item)
     return out
 

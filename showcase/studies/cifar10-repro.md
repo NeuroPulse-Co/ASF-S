@@ -78,6 +78,399 @@ key_results:
   compare:
     label: paper, Table 4
     value: 72.69
+evidence:
+- type: diagram
+  title: How we checked each step against the paper
+  caption: 'Each box is one step of Artificial Structure Function Search (ASF-S) as we ran it on Conv2Net
+    and CIFAR-10, and the note beside it is our check against the paper. Steps 0 to 7 all match, up to
+    removing 75.84% of the parameters by keeping 19 and 16 filters. The amber step is where we part ways:
+    retraining only the final fully connected (FC) layer loses 10.50 points where the paper reports 3.78,
+    while retraining the whole network comes much closer (−5.00).'
+  src: ../figures/cifar10-repro/evidence-01-how-we-checked-each-step-against-the-paper.svg
+  source_url: https://github.com/NeuroPulse-Co/ASF-S/blob/main/studies/cifar10-repro/diagrams/method.excalidraw.svg
+- type: chart
+  title: Accuracy lost after pruning, by method and by how much we retrain
+  caption: Each dot is one seed; for random filters, each dot is one random draw. When only the final
+    layer is retrained, every method loses 10 to 16 points, far below the paper's −3.78. When the whole
+    network is retrained, every method lands between −4.3 and −6.8, so the choice of filters stops mattering
+    much.
+  kind: dots
+  x: method
+  y: d_acc
+  y_label: Change in test accuracy after pruning 75.8% of parameters (points)
+  split: test
+  series: ft_mode
+  x_label: How filters were chosen
+  reference:
+    label: Paper, final layer retrained
+    value: -3.78
+  labels:
+    pgi_aligned: PGI, corrected
+    pgi_original: PGI, authors' formula
+    l1: Smallest weights (L1)
+    l2: Smallest weights (L2)
+    random0: Random filters
+    random1: Random filters
+    random2: Random filters
+    fc: Final layer retrained
+    full: Whole network retrained
+  rows:
+  - method: pgi_aligned
+    ft_mode: fc
+    d_acc: -10.47
+  - method: pgi_aligned
+    ft_mode: full
+    d_acc: -4.61
+  - method: pgi_original
+    ft_mode: fc
+    d_acc: -14.89
+  - method: pgi_original
+    ft_mode: full
+    d_acc: -5.38
+  - method: l1
+    ft_mode: fc
+    d_acc: -11.95
+  - method: l1
+    ft_mode: full
+    d_acc: -5.11
+  - method: l2
+    ft_mode: fc
+    d_acc: -12.36
+  - method: l2
+    ft_mode: full
+    d_acc: -4.87
+  - method: random0
+    ft_mode: fc
+    d_acc: -15.67
+  - method: random0
+    ft_mode: full
+    d_acc: -5.88
+  - method: random1
+    ft_mode: fc
+    d_acc: -14.58
+  - method: random1
+    ft_mode: full
+    d_acc: -6.82
+  - method: random2
+    ft_mode: fc
+    d_acc: -14.97
+  - method: random2
+    ft_mode: full
+    d_acc: -6.19
+  - method: pgi_aligned
+    ft_mode: fc
+    d_acc: -10.56
+  - method: pgi_aligned
+    ft_mode: fc
+    d_acc: -10.47
+  - method: pgi_aligned
+    ft_mode: full
+    d_acc: -5.45
+  - method: pgi_aligned
+    ft_mode: full
+    d_acc: -4.95
+  - method: pgi_original
+    ft_mode: fc
+    d_acc: -15.03
+  - method: pgi_original
+    ft_mode: fc
+    d_acc: -15.08
+  - method: pgi_original
+    ft_mode: full
+    d_acc: -6.31
+  - method: pgi_original
+    ft_mode: full
+    d_acc: -5.15
+  - method: l1
+    ft_mode: fc
+    d_acc: -12.2
+  - method: l1
+    ft_mode: fc
+    d_acc: -11.83
+  - method: l1
+    ft_mode: full
+    d_acc: -5.49
+  - method: l1
+    ft_mode: full
+    d_acc: -4.27
+  - method: l2
+    ft_mode: fc
+    d_acc: -11.72
+  - method: l2
+    ft_mode: fc
+    d_acc: -11.64
+  - method: l2
+    ft_mode: full
+    d_acc: -4.89
+  - method: l2
+    ft_mode: full
+    d_acc: -4.67
+  data: ../data/cifar10-repro/evidence-02-accuracy-lost-after-pruning-by-method-and-by-how.csv
+  source_url: https://github.com/NeuroPulse-Co/ASF-S/blob/main/studies/cifar10-repro/outputs/run01/conv2net_paper/step8_finetune/results.csv
+- type: table
+  title: Every run behind the chart
+  caption: One row per method, retraining mode and seed. The dense network scores 75.32% on the test set,
+    so the change is the pruned accuracy minus 75.32.
+  split: test
+  columns:
+  - key: method
+    label: Method
+  - key: ft_mode
+    label: Retrained
+  - key: ft_seed
+    label: Seed
+  - key: test_acc
+    label: Test accuracy (%)
+  - key: d_acc
+    label: Change (points)
+  labels:
+    pgi_aligned: PGI, corrected
+    pgi_original: PGI, authors' formula
+    l1: Smallest weights (L1)
+    l2: Smallest weights (L2)
+    random0: Random filters, draw 1
+    random1: Random filters, draw 2
+    random2: Random filters, draw 3
+    fc: Final layer
+    full: Whole network
+  rows:
+  - method: pgi_aligned
+    ft_mode: fc
+    ft_seed: 42
+    test_acc: 64.85
+    d_acc: -10.47
+  - method: pgi_aligned
+    ft_mode: full
+    ft_seed: 42
+    test_acc: 70.71
+    d_acc: -4.61
+  - method: pgi_original
+    ft_mode: fc
+    ft_seed: 42
+    test_acc: 60.43
+    d_acc: -14.89
+  - method: pgi_original
+    ft_mode: full
+    ft_seed: 42
+    test_acc: 69.94
+    d_acc: -5.38
+  - method: l1
+    ft_mode: fc
+    ft_seed: 42
+    test_acc: 63.37
+    d_acc: -11.95
+  - method: l1
+    ft_mode: full
+    ft_seed: 42
+    test_acc: 70.21
+    d_acc: -5.11
+  - method: l2
+    ft_mode: fc
+    ft_seed: 42
+    test_acc: 62.96
+    d_acc: -12.36
+  - method: l2
+    ft_mode: full
+    ft_seed: 42
+    test_acc: 70.45
+    d_acc: -4.87
+  - method: random0
+    ft_mode: fc
+    ft_seed: 42
+    test_acc: 59.65
+    d_acc: -15.67
+  - method: random0
+    ft_mode: full
+    ft_seed: 42
+    test_acc: 69.44
+    d_acc: -5.88
+  - method: random1
+    ft_mode: fc
+    ft_seed: 42
+    test_acc: 60.74
+    d_acc: -14.58
+  - method: random1
+    ft_mode: full
+    ft_seed: 42
+    test_acc: 68.5
+    d_acc: -6.82
+  - method: random2
+    ft_mode: fc
+    ft_seed: 42
+    test_acc: 60.35
+    d_acc: -14.97
+  - method: random2
+    ft_mode: full
+    ft_seed: 42
+    test_acc: 69.13
+    d_acc: -6.19
+  - method: pgi_aligned
+    ft_mode: fc
+    ft_seed: 43
+    test_acc: 64.76
+    d_acc: -10.56
+  - method: pgi_aligned
+    ft_mode: fc
+    ft_seed: 44
+    test_acc: 64.85
+    d_acc: -10.47
+  - method: pgi_aligned
+    ft_mode: full
+    ft_seed: 43
+    test_acc: 69.87
+    d_acc: -5.45
+  - method: pgi_aligned
+    ft_mode: full
+    ft_seed: 44
+    test_acc: 70.37
+    d_acc: -4.95
+  - method: pgi_original
+    ft_mode: fc
+    ft_seed: 43
+    test_acc: 60.29
+    d_acc: -15.03
+  - method: pgi_original
+    ft_mode: fc
+    ft_seed: 44
+    test_acc: 60.24
+    d_acc: -15.08
+  - method: pgi_original
+    ft_mode: full
+    ft_seed: 43
+    test_acc: 69.01
+    d_acc: -6.31
+  - method: pgi_original
+    ft_mode: full
+    ft_seed: 44
+    test_acc: 70.17
+    d_acc: -5.15
+  - method: l1
+    ft_mode: fc
+    ft_seed: 43
+    test_acc: 63.12
+    d_acc: -12.2
+  - method: l1
+    ft_mode: fc
+    ft_seed: 44
+    test_acc: 63.49
+    d_acc: -11.83
+  - method: l1
+    ft_mode: full
+    ft_seed: 43
+    test_acc: 69.83
+    d_acc: -5.49
+  - method: l1
+    ft_mode: full
+    ft_seed: 44
+    test_acc: 71.05
+    d_acc: -4.27
+  - method: l2
+    ft_mode: fc
+    ft_seed: 43
+    test_acc: 63.6
+    d_acc: -11.72
+  - method: l2
+    ft_mode: fc
+    ft_seed: 44
+    test_acc: 63.68
+    d_acc: -11.64
+  - method: l2
+    ft_mode: full
+    ft_seed: 43
+    test_acc: 70.43
+    d_acc: -4.89
+  - method: l2
+    ft_mode: full
+    ft_seed: 44
+    test_acc: 70.65
+    d_acc: -4.67
+  data: ../data/cifar10-repro/evidence-03-every-run-behind-the-chart.csv
+  source_url: https://github.com/NeuroPulse-Co/ASF-S/blob/main/studies/cifar10-repro/outputs/run01/conv2net_paper/step8_finetune/results.csv
+runs:
+- id: 20261020-1352-server-run01-step0
+  started: '2026-10-20T13:14:46+05:30'
+  host: server
+  seed: null
+  commit: 4409c30
+  exit_code: null
+  backfilled: true
+- id: 20261020-1439-server-diag_tv-step1
+  started: '2026-10-20T14:24:02+05:30'
+  host: server
+  seed: 42
+  commit: unknown
+  exit_code: null
+  backfilled: true
+- id: 20261020-1620-server-seed43-step1
+  started: '2026-10-20T16:12:01+05:30'
+  host: server
+  seed: 44
+  commit: unknown
+  exit_code: null
+  backfilled: true
+- id: 20261020-1632-server-run01-step1
+  started: '2026-10-20T16:23:59+05:30'
+  host: server
+  seed: 42
+  commit: unknown
+  exit_code: null
+  backfilled: true
+- id: 20261020-1633-server-run01-step2
+  started: '2026-10-20T16:33:08+05:30'
+  host: server
+  seed: null
+  commit: unknown
+  exit_code: null
+  backfilled: true
+- id: 20261020-1655-server-run01-step3
+  started: '2026-10-20T16:55:56+05:30'
+  host: server
+  seed: null
+  commit: unknown
+  exit_code: null
+  backfilled: true
+- id: 20261020-1708-server-run01-step4
+  started: '2026-10-20T17:08:26+05:30'
+  host: server
+  seed: null
+  commit: unknown
+  exit_code: null
+  backfilled: true
+- id: 20261020-1711-server-run01-step5
+  started: '2026-10-20T17:11:53+05:30'
+  host: server
+  seed: null
+  commit: unknown
+  exit_code: null
+  backfilled: true
+- id: 20261020-1716-server-run01-step6
+  started: '2026-10-20T17:16:24+05:30'
+  host: server
+  seed: null
+  commit: unknown
+  exit_code: null
+  backfilled: true
+- id: 20261020-1730-server-run01-step7-aligned
+  started: '2026-10-20T17:30:28+05:30'
+  host: server
+  seed: null
+  commit: unknown
+  exit_code: null
+  backfilled: true
+- id: 20261020-1732-server-run01-step7-original
+  started: '2026-10-20T17:31:54+05:30'
+  host: server
+  seed: null
+  commit: unknown
+  exit_code: null
+  backfilled: true
+- id: 20261021-1406-server-run01-step8
+  started: '2026-10-20T17:49:08+05:30'
+  host: server
+  seed: null
+  commit: unknown
+  exit_code: null
+  backfilled: true
 code_url: https://github.com/NeuroPulse-Co/ASF-S/tree/main/studies/cifar10-repro
 ---
 

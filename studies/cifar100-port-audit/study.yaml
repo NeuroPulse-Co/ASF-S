@@ -67,3 +67,36 @@ links:
   - studies/cifar100-port-audit/LOG.md
   - studies/cifar100-port-audit/docs/cifar100-status.md
   - studies/cifar100-port-audit/docs/asf-s-paper-vs-implementation.md
+evidence:
+  - type: diagram
+    source: diagrams/method.excalidraw.svg
+    title: Where the bugs sat in the authors' code path
+    caption: >-
+      Read the seven steps from top to bottom, in the order the ported scripts run Artificial
+      Structure Function Search (ASF-S) on CIFAR-100. The amber steps are where our audit found
+      problems. We fixed three before run 02: the first principal gradient (PG1) built from one image,
+      the classifier rebuild, and the parameter count. We left the dashed one unchanged: the test set
+      decides when fine-tuning stops, so every accuracy we report is the best test accuracy seen
+      during fine-tuning, not a clean held-out estimate.
+  - type: table
+    source: [cifar100/pg_project_output/runs/run03_2026-09-29_baselines/results/sliming_conv2net_cifar100.csv, cifar100/pg_project_output/runs/run03_2026-09-29_baselines/results/svd_conv2net_cifar100.csv, cifar100/pg_project_output/runs/run03_2026-09-29_baselines/results/snows_conv2net_cifar100.csv, cifar100/pg_project_output/runs/run03_2026-09-29_baselines/results/hrank_conv2net_cifar100.csv]
+    columns: {method: Method, kept_conv1: "Filters kept, layer 1 (of 32)", kept_conv2: "Filters kept, layer 2 (of 64)", param_red_pct: "Parameters removed (%)", val_acc: "Accuracy (%)"}
+    labels: {sliming: Network slimming, svd: SVD, snows: SNOWS, hrank: HRank}
+    split: test
+    title: The other pruning methods, rerun on our fixed code
+    caption: >-
+      Four pruning methods from the authors' code, one seed each. At about 70% of parameters
+      removed, network slimming reaches 37.02%, SVD 33.99% and SNOWS 32.34%. ASF-S at a similar
+      size (10 and 20 filters kept, 69.0% removed) reaches 32.00%, so it does not beat them.
+      Each accuracy is the best test accuracy seen during fine-tuning, because the code uses the
+      test set to decide when to stop; this flatters every method equally.
+  - type: table
+    source: cifar100/pg_project_output/runs/run02_2026-09-28_rtx2080_S50_fixes/results/pg_conv2net_cifar100.csv
+    columns: {kept_conv1: "Filters kept, layer 1 (of 32)", kept_conv2: "Filters kept, layer 2 (of 64)", total_param_red_pct: "Parameters removed (%)", pre_acc: "Accuracy before fine-tuning (%)", val_acc: "Accuracy after fine-tuning (%)"}
+    split: test
+    title: Every ASF-S setting we tried, after fixing the code
+    caption: >-
+      ASF-S at 81 combinations of pruning thresholds, one seed, with only the final layer
+      fine-tuned. The best result with about two thirds of the parameters removed is 40.46% (30
+      and 20 filters kept, 68.7% removed), against 52.52% for the unpruned network. As before,
+      each accuracy is the best test accuracy seen during fine-tuning.

@@ -51,6 +51,151 @@ key_results:
   compare:
     label: unpruned frozen-encoder model
     value: 83.71
+evidence:
+- type: diagram
+  title: How we moved PG pruning from images to a language model
+  caption: We fine-tuned BERT-base on the AG News topic task in two ways, once with the encoder frozen
+    and once with every layer trained, and recorded the feed-forward (FFN) neuron activations in layers
+    0, 5 and 11. The blue step is the principal-gradient (PG) score, which compares how those neurons
+    behave on correctly and incorrectly classified examples. We removed the lowest-scoring neurons, retrained
+    and measured test accuracy. The later four-method comparison against random and weight-magnitude choices
+    retrained only the classifier.
+  src: ../figures/bert-pg-transfer/evidence-01-how-we-moved-pg-pruning-from-images-to-a-languag.svg
+  source_url: https://github.com/NeuroPulse-Co/ASF-S/blob/main/studies/bert-pg-transfer/diagrams/method.excalidraw.svg
+- type: table
+  title: Every setting in the committed PG sweep
+  caption: PG pruning of BERT's feed-forward neurons, one seed; accuracies are fractions of the AG News
+    test set. Even the lowest threshold removes more than 96% of the neurons in the three layers. In the
+    fully fine-tuned model, accuracy after retraining stays within about 0.3 points of the unpruned 0.945
+    at every threshold, so this sweep cannot tell PG apart from any other way of choosing neurons.
+  split: test
+  columns:
+  - key: model_mode
+    label: Starting model
+  - key: threshold
+    label: PG threshold
+  - key: pruned_pct_overall
+    label: Neurons removed in layers 0, 5, 11 (%)
+  - key: baseline_acc
+    label: Unpruned accuracy
+  - key: postprune_acc
+    label: Accuracy after pruning
+  - key: best_retrain_acc
+    label: Accuracy after retraining
+  labels:
+    head: Head-only (encoder frozen)
+    full: Fully fine-tuned
+  rows:
+  - model_mode: head
+    threshold: 0.1
+    pruned_pct_overall: 96.72309027777779
+    baseline_acc: 0.8371052631578947
+    postprune_acc: 0.8372368421052632
+    best_retrain_acc: 0.8606578947368421
+  - model_mode: head
+    threshold: 0.2
+    pruned_pct_overall: 98.90407986111111
+    baseline_acc: 0.8371052631578947
+    postprune_acc: 0.825
+    best_retrain_acc: 0.8530263157894736
+  - model_mode: head
+    threshold: 0.3
+    pruned_pct_overall: 99.51171875
+    baseline_acc: 0.8371052631578947
+    postprune_acc: 0.665921052631579
+    best_retrain_acc: 0.8501315789473685
+  - model_mode: head
+    threshold: 0.4
+    pruned_pct_overall: 99.65277777777779
+    baseline_acc: 0.8371052631578947
+    postprune_acc: 0.6655263157894736
+    best_retrain_acc: 0.8531578947368421
+  - model_mode: head
+    threshold: 0.5
+    pruned_pct_overall: 99.76128472222221
+    baseline_acc: 0.8371052631578947
+    postprune_acc: 0.67
+    best_retrain_acc: 0.8435526315789473
+  - model_mode: head
+    threshold: 0.6
+    pruned_pct_overall: 99.83723958333334
+    baseline_acc: 0.8371052631578947
+    postprune_acc: 0.6778947368421052
+    best_retrain_acc: 0.8563157894736843
+  - model_mode: head
+    threshold: 0.7
+    pruned_pct_overall: 99.91319444444444
+    baseline_acc: 0.8371052631578947
+    postprune_acc: 0.6781578947368421
+    best_retrain_acc: 0.8452631578947368
+  - model_mode: head
+    threshold: 0.8
+    pruned_pct_overall: 99.92404513888889
+    baseline_acc: 0.8371052631578947
+    postprune_acc: 0.6784210526315789
+    best_retrain_acc: 0.8506578947368421
+  - model_mode: head
+    threshold: 0.9
+    pruned_pct_overall: 99.93489583333334
+    baseline_acc: 0.8371052631578947
+    postprune_acc: 0.6794736842105263
+    best_retrain_acc: 0.8463157894736842
+  - model_mode: full
+    threshold: 0.1
+    pruned_pct_overall: 96.12630208333334
+    baseline_acc: 0.9453947368421053
+    postprune_acc: 0.9393421052631579
+    best_retrain_acc: 0.9451315789473684
+  - model_mode: full
+    threshold: 0.2
+    pruned_pct_overall: 98.49175347222221
+    baseline_acc: 0.9453947368421053
+    postprune_acc: 0.9365789473684211
+    best_retrain_acc: 0.9422368421052632
+  - model_mode: full
+    threshold: 0.3
+    pruned_pct_overall: 99.62022569444444
+    baseline_acc: 0.9453947368421053
+    postprune_acc: 0.9367105263157894
+    best_retrain_acc: 0.9446052631578947
+  - model_mode: full
+    threshold: 0.4
+    pruned_pct_overall: 99.88064236111111
+    baseline_acc: 0.9453947368421053
+    postprune_acc: 0.9355263157894737
+    best_retrain_acc: 0.9444736842105264
+  - model_mode: full
+    threshold: 0.5
+    pruned_pct_overall: 99.92404513888889
+    baseline_acc: 0.9453947368421053
+    postprune_acc: 0.9356578947368421
+    best_retrain_acc: 0.9465789473684211
+  - model_mode: full
+    threshold: 0.6
+    pruned_pct_overall: 99.94574652777779
+    baseline_acc: 0.9453947368421053
+    postprune_acc: 0.9356578947368421
+    best_retrain_acc: 0.9431578947368421
+  - model_mode: full
+    threshold: 0.7
+    pruned_pct_overall: 99.95659722222221
+    baseline_acc: 0.9453947368421053
+    postprune_acc: 0.9356578947368421
+    best_retrain_acc: 0.945
+  - model_mode: full
+    threshold: 0.8
+    pruned_pct_overall: 99.95659722222221
+    baseline_acc: 0.9453947368421053
+    postprune_acc: 0.9356578947368421
+    best_retrain_acc: 0.9453947368421053
+  - model_mode: full
+    threshold: 0.9
+    pruned_pct_overall: 99.95659722222221
+    baseline_acc: 0.9453947368421053
+    postprune_acc: 0.9356578947368421
+    best_retrain_acc: 0.9447368421052632
+  data: ../data/bert-pg-transfer/evidence-02-every-setting-in-the-committed-pg-sweep.csv
+  source_url: https://github.com/NeuroPulse-Co/ASF-S/blob/main/studies/bert-pg-transfer/sweep_results.csv
 code_url: https://github.com/NeuroPulse-Co/ASF-S/tree/main/studies/bert-pg-transfer
 ---
 

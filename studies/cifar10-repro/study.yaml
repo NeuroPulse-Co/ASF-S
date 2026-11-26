@@ -92,3 +92,49 @@ key_results:
     split: test
     n_seeds: 1
     compare: {label: "paper, Table 4", value: 72.69}
+evidence:
+  - type: diagram
+    source: diagrams/method.excalidraw.svg
+    title: How we checked each step against the paper
+    caption: >-
+      Each box is one step of Artificial Structure Function Search (ASF-S) as we ran it on Conv2Net
+      and CIFAR-10, and the note beside it is our check against the paper. Steps 0 to 7 all match,
+      up to removing 75.84% of the parameters by keeping 19 and 16 filters. The amber step is where
+      we part ways: retraining only the final fully connected (FC) layer loses 10.50 points where
+      the paper reports 3.78, while retraining the whole network comes much closer (−5.00).
+  - type: chart
+    source: outputs/run01/conv2net_paper/step8_finetune/results.csv
+    filter: {scope: paper, ft_lr: 0.0001, ft_mode: [fc, full]}
+    x: method
+    series: ft_mode
+    y: d_acc
+    x_label: How filters were chosen
+    y_label: Change in test accuracy after pruning 75.8% of parameters (points)
+    split: test
+    labels:
+      pgi_aligned: PGI, corrected
+      pgi_original: PGI, authors' formula
+      l1: Smallest weights (L1)
+      l2: Smallest weights (L2)
+      random0: Random filters
+      random1: Random filters
+      random2: Random filters
+      fc: Final layer retrained
+      full: Whole network retrained
+    reference: {label: "Paper, final layer retrained", value: -3.78}
+    title: Accuracy lost after pruning, by method and by how much we retrain
+    caption: >-
+      Each dot is one seed; for random filters, each dot is one random draw. When only the final
+      layer is retrained, every method loses 10 to 16 points, far below the paper's −3.78. When the
+      whole network is retrained, every method lands between −4.3 and −6.8, so the choice of
+      filters stops mattering much.
+  - type: table
+    source: outputs/run01/conv2net_paper/step8_finetune/results.csv
+    filter: {scope: paper, ft_lr: 0.0001, ft_mode: [fc, full]}
+    columns: {method: Method, ft_mode: Retrained, ft_seed: Seed, test_acc: "Test accuracy (%)", d_acc: "Change (points)"}
+    labels: {pgi_aligned: "PGI, corrected", pgi_original: "PGI, authors' formula", l1: "Smallest weights (L1)", l2: "Smallest weights (L2)", random0: "Random filters, draw 1", random1: "Random filters, draw 2", random2: "Random filters, draw 3", fc: Final layer, full: Whole network}
+    split: test
+    title: Every run behind the chart
+    caption: >-
+      One row per method, retraining mode and seed. The dense network scores 75.32% on the test
+      set, so the change is the pruned accuracy minus 75.32.
