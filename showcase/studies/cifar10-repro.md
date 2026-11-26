@@ -169,4 +169,4 @@ We stop trying to reproduce the FC-only recovery claim, and treat it as not repr
 1. The corrected (aligned) PGI is the only PGI variant that beats simple magnitude scores, and only under FC-only fine-tuning, where it beats L1 and L2 by about 1.5 points. Under full fine-tuning, all non-random rules are within seed noise of each other.
 2. The authors' literal formula behaves like random selection.
 
-These two points motivate Workstream 2. It asks, under a careful evaluation protocol, whether preserving functional connectivity selects better filters than simple scores, and it starts from our corrected PGI rather than the original formula. The detailed reasoning and every run are in this study's [lab log](LOG.md).
+These two points motivate Workstream 2. It asks, under a careful evaluation protocol, whether preserving functional connectivity selects better filters than simple scores, and it starts from our corrected PGI rather than the original formula. The detailed reasoning and every run are in this study's [lab log](https://github.com/NeuroPulse-Co/ASF-S/blob/main/studies/cifar10-repro/LOG.md).

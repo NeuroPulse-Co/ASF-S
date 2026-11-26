@@ -15,7 +15,9 @@ The NeuroPulse-Co org (FYP: structure-function-aware pruning for continual learn
 ## Status (2026-11-25)
 - ✅ P1 built locally: `.github` + `research-template` (awaiting push by user).
 - ✅ P2 done locally: ASF-S restructured on branch `restructure` (4 studies, records, showcase); AFC-Prune split out with history (S0 closed, S1 running; gradient tiers interrupted by server outage). Standard change: `split: none` allowed for non-data numbers.
-- ⏭ Next: P3 (Astro site).
+- ✅ P3 built locally: Astro site (astro@5.18.2) in worktree `site-astro` on branch `astro` of NeuroPulse-Co.github.io; 21 pages, schema-validated, 0 broken links; deploy via Actions. record.py promote now rewrites repo-file links to GitHub URLs.
+- The user rebuilt the site with impeccable (uncommitted as of 2026-11-26). The homepage is still cluttered and reads as AI-made.
+- ⏭ Next: **P3b site revision** (§6: a story-first homepage with no table and no charts, visual-first study pages with Excalidraw method diagrams and evidence charts, the diagram protocol for humans and AI, lab notes with one clear job, team guide `standards/WEBSITE.md`), then P4 (edit draft posts; intro post), P5 (dispatch token secret).
 
 ### P1 detail (kept for reference)
 
@@ -401,6 +403,164 @@ Server note: output folders on the server (`~/asfs_outputs`, `~/afcp_outputs`) a
 **P4: Backfill posts.** Write one post per closed study, plus an intro post ("What we are building and why"). Since posts are per milestone and written by any member, I can draft these from the LOG and FINDINGS for the owner to edit.
 
 **P5: Automation.** Add `notify-site.yml` and `validate-records.yml` to each research repo, and add the repository_dispatch token secret (you set this up).
+
+## 6. P3b: Site revision (added 2026-11-25, after the first review of the built site)
+
+### Problems found
+1. **The homepage is cluttered.** Six blocks compete for attention:
+   - the hero and byline
+   - the tally
+   - the "Why the plan changed" note
+   - a six-row status legend plus a legend note
+   - a 6-workstream board, where 4 rows are plans rather than studies
+   - the annotated "How to read a study" record with three principles, and an empty lab-notes section.
+
+   The impeccable critique scored it 22/40. Aesthetic and minimalist design scored 2.
+2. **There is almost no visual evidence.** Only 4 figures reach the site (2 for cifar10-repro, 2 for BERT), and there are no data tables. The study pages show 1–3 key numbers. Meanwhile the repos hold the real evidence:
+   - `cifar10-repro/.../step8_finetune/results.csv`: 100 rows, every method × fine-tuning mode × seed
+   - the step 1–7 CSVs and PNGs
+   - `AFC-Prune/s1-baselines/results/clean_s4*/results.csv`: selector × budget × recovery tier
+   - the CIFAR-100 run03 baselines.
+
+   A reader cannot see the spread across seeds, the comparison across methods, or where the paper's number sits.
+3. **Lab notes have no clear job.** They are 6 drafts that are all TODO, and none is published. They duplicate the study page's question, verdict and summary. The homepage shows an empty section for them.
+
+### Decision: what each page type is for
+| Page | Job | Changes when | Written by |
+|---|---|---|---|
+| **Study page** (`/studies/...`) | The **record**: question, criterion, verdict, the evidence (charts, tables, figures, runs) and the reasoning. A reference you cite. | Every promote, while the study runs | `record.py promote` from study.yaml + FINDINGS.md + evidence |
+| **Lab note** (`/blog/...`) | The **story**: why we asked, what surprised us, what it changes for the project. 800–1500 words, one or two figures reused from the study, then a link to the study page for the numbers. It doubles as a thesis-chapter draft. | Once, at a milestone | A named team member |
+
+The rule: **numbers live on study pages, narrative lives in lab notes.** A lab note never introduces a number the study page does not have. Lab notes are not required for every study. They are written when there is a story worth telling, such as a milestone, a negative result or a change of plan. The nav label stays "Lab notes". Each study page links to its notes, and each note links to its study.
+
+### Homepage: story first (decided with the user on 2026-11-26)
+The impeccable pass did not fix the clutter, and the page still reads as AI-made. That means a stock landing-page layout, over-explained helper text, and generic sections such as a three-principles closer and a long legend. Negative space is fine and stays. The problem is the number of blocks and the machine-made feel, not the whitespace.
+
+**The new homepage is a short story in three chapters, written by us in the first person, with no study table and no charts.**
+1. **Opening:** the one-line research question, one sentence of who we are (the team, the department, the supervisor), and nothing else.
+2. **Chapter 1, "What we set out to do":** continual learning, forgetting, and the idea of protecting what a network needs to function. It ends with the ASF-S paper as our starting point.
+3. **Chapter 2, "What we found when we checked ASF-S":** this chapter tells what happened in prose, quotes one or two numbers inline with links to the study pages, and states the negative results plainly.
+4. **Chapter 3, "What we are doing next":** the go/no-go on PGI, then continual learning (W3, W4) and the final benchmark. It links to `/research/` and `/timeline/`.
+5. **Footer links** go to Studies, Lab notes (shown only once at least one is published) and the record standard.
+
+Each chapter is a few short paragraphs. A chapter ends with one text link onward, not a button row.
+
+**Removed from the homepage:**
+- the study table (it lives on `/studies/`)
+- the six-status legend and the post hoc / seeds note
+- "How to read a study" (the annotated record and the three principles)
+- the "Why the plan changed" aside (its content becomes part of chapter 3)
+- the planned-workstream rows
+- the verdict tally block
+- the empty lab-notes section
+
+The legend and the record explainer move to `/research/#records`, and `/studies/` links there.
+
+**De-slop rules for the homepage:**
+- No sentence that explains the interface ("Each workstream is one thread…").
+- No generic headings ("Latest", "How it works").
+- No more than one call to action.
+- No decorative badges inside prose.
+- Every sentence must say something only this project could say.
+
+The finished page is checked with impeccable `detect` and `critique`, and then read aloud once: anything that sounds like a template line is cut.
+
+The other pages stay as they are for now (the user's choice). The only exception is the study pages, below.
+
+### Visual-first study pages (decided with the user on 2026-11-26)
+A study page leads with pictures. Text explains them, rather than the other way round. The order is:
+1. Title, status and a one-sentence verdict.
+2. **Method diagram:** what we did, step by step, as an Excalidraw drawing.
+3. **Evidence charts and graphs** (the `evidence:` block below). They complement the study's question directly: each chart answers part of it. Each chart has a caption saying what to look at and what it means.
+4. Key results table.
+5. Supporting tables and figures.
+6. Reasoning (FINDINGS).
+7. Runs table, collapsed.
+8. Lab notes.
+
+### Diagram protocol (Excalidraw), added to the record standard as `standards/DIAGRAMS.md`
+- **Files (as built, 2026-11-26).** Each diagram is one file, `studies/<id>/diagrams/<name>.excalidraw.svg`: an SVG with the Excalidraw scene embedded and the font inlined, so it is both the picture and the editable source. There is no separate source file to fall out of date. `record.py check` fails if the file is not `.excalidraw.svg` or has lost its embedded scene. `promote` copies it to `showcase/figures/<id>/`.
+- **Export (as built).** `tools/export-diagrams.mjs` runs Excalidraw 0.18's own `exportToSvg` in headless Chrome, using playwright-core installed on first run into `~/.cache/np-diagrams`. It has three modes: JSON → diagram, `--png` (a preview for checking by eye) and `--extract` (diagram → JSON).
+  The `excalidraw-to-svg` package was tried and is broken with current `@excalidraw/utils`. `self-update` also fetches the export script.
+- **How a human makes one.** Open the `.excalidraw` file at excalidraw.com or in the VS Code Excalidraw extension, edit it, save, then run the export.
+- **How an AI agent makes one.** The agent writes the `.excalidraw` JSON directly, following these rules:
+  - **Draw a real mechanism.** Every diagram answers one question, written as its caption, for example "How does ASF-S choose which filters to keep?". It shows the actual steps, data and decisions of the study, taken from the code or the LOG, never a generic box-and-arrow picture.
+  - **Keep it small.** At most 12 shapes. It reads left to right or top to bottom, with one entry point.
+  - **Use the house style.**
+    - Shapes: `roughness: 1`, `fontFamily: 1` (Virgil/Excalifont), `strokeWidth: 2`.
+    - Colours: one stroke colour (`#1e1e1e`), one accent (the site's teal) for the element the caption is about, and pale fills only. No more than three colours in total.
+    - Labels are full words. An abbreviation is used only if it is in the glossary, and it is spelled out in the caption.
+    - Arrows are bound to shapes, using `startBinding`/`endBinding`, so the diagram stays editable.
+    - Text sits inside its shape (`containerId`), so it moves with the shape.
+    - Element ids are stable and readable (`step-train`, `arrow-train-afc`), so later edits produce small diffs.
+  - **Check its own work.** Export, then read the exported SVG back as an image. Check for overlaps, cut-off text, and arrows that point to nothing. Fix and repeat until clean.
+  - **Hand it over for review.** Commit nothing. The study owner opens the diagram in Excalidraw, adjusts it, and approves it, because diagrams claim how our method works.
+- **First diagrams:**
+  - **cifar10-repro:** the ASF-S pipeline, steps 0–8 (train → activations → AFC → PG1 → contrast PCA → PGI → prune → fine-tune), with the point where our result diverges from the paper marked.
+  - **cifar100-port-audit:** the authors' code path and where each bug sits.
+  - **s1-baselines:** selectors × budgets × recovery tiers.
+  - **mnist-lenet-sanity** and **bert-pg-transfer:** one diagram each, showing the setup.
+
+### Evidence on study pages (needs a small change to the record standard)
+- **study.yaml gets an optional `evidence:` list.** Each item has these fields:
+  - `type`: `chart`, `table`, `figure` or `diagram`
+  - `source`: a CSV or image path inside the study
+  - for charts and tables: `filter` (rows to keep), `columns` (with display labels and units) and `group`/`x`/`y`
+  - for charts: `kind`, either `dots` (per-seed dots with mean ± sd, the default) or `bars`
+  - `reference`: an optional `{label, value}`, for example the paper's number
+  - `caption`, which is required and follows STYLE.md: what to look at, and what it means.
+- **`record.py promote`** does two new things:
+  - It copies each source CSV, filtered to the declared columns and capped at 200 rows, to `showcase/data/<id>/`.
+  - It always writes `showcase/data/<id>/runs.csv`: run id, date, host, seed, commit, exit code and backfilled flag, taken from the run.yaml files.
+
+  `record.py check` validates the `evidence` block.
+- **Site.** Two components draw at build time, with no chart library:
+  - `EvidenceChart.astro`: an inline SVG dot or bar chart, with labelled axes, units and the reference line. It uses one accent colour plus neutral greys, works in both light and dark themes, and has a `<table>` fallback for screen readers.
+  - `DataTable.astro`: a sortable-free plain table with tabular numbers and the `split` and `n` shown.
+
+  The study page section order is the visual-first order above.
+
+  The zod schema gains `evidence`.
+- **First evidence to add:**
+  - **cifar10-repro:**
+    - a step 8 chart of Δ accuracy by method × fine-tuning mode, with the paper as reference
+    - a steps 0–7 gate table (each step, our number, the paper's number, pass or fail)
+    - the existing AFC and Pareto figures.
+  - **s1-baselines:**
+    - a chart of Δ accuracy by selector at the matched budget, over 3 seeds (validation data)
+    - a table of the recovery tiers T0–T3.
+  - **cifar100-port-audit:** the run01–03 baselines table.
+  - **mnist-lenet-sanity** and **bert-pg-transfer:** a results table each. BERT keeps its figures.
+
+### Team guide
+- `standards/WEBSITE.md` in the `.github` repo. It covers:
+  - what goes where
+  - how to add evidence, publish a lab note, preview locally and deploy
+  - what not to edit (generated files).
+- The site README links to it.
+
+### P3b steps
+1. ✅ Write `standards/WEBSITE.md`.
+2. ✅ **Record standard** (done 2026-11-26: record.py 1.1.0 with 27 tests, RECORDS.md Evidence, DIAGRAMS.md, export-diagrams.mjs verified, WEBSITE.md updated, tools synced to all 4 repos, all checks pass).
+   - Add `evidence:` (including `type: diagram`) to RECORDS.md and the templates.
+   - Update `record.py`: check, promote, runs.csv, and the diagram freshness check, with tests.
+   - Write `standards/DIAGRAMS.md` and `tools/export-diagrams.mjs`, and verify the font export.
+   - Sync `record.py` and the export script to every repo.
+   - Add an evidence and diagram section to WEBSITE.md.
+3. **Site.**
+   - Add `EvidenceChart` and `DataTable`, and extend the schema.
+   - Reorder the study pages to the visual-first order, and add the runs table.
+   - Move the legend and the record explainer to `/research/#records`.
+4. **Homepage.** Rewrite it as the three-chapter story and delete the removed blocks and their CSS. Draft the chapter text from the study records and FINDINGS, using numbers only from study.yaml. The user edits the text.
+5. **Content.**
+   - Add `evidence:` blocks to the five studies, and check every number against its CSV.
+   - Draw the first diagrams following the AI protocol. The study owners review them.
+   - Re-promote everything.
+6. **Check.**
+   - Run impeccable `critique` on the homepage (target ≥ 30/40) and `detect` (0 findings).
+   - Check at 375 px and 1440 px, in both themes.
+   - Run the link check.
+   - Read the homepage aloud once and cut template-sounding lines.
 
 ## Verification
 

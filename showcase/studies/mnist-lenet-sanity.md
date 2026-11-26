@@ -83,7 +83,7 @@ read as real.
 
 We compared three ASF-S variants. `as_coded` keeps every behaviour of the authors' code.
 `asf_fc2` and `asf_fc3` are two dimensionally consistent readings of the paper's Equation 12, which
-cannot be computed exactly as written (the [README](README.md) in this folder lists the ten
+cannot be computed exactly as written (the [README](https://github.com/NeuroPulse-Co/ASF-S/blob/main/studies/mnist-lenet-sanity/README.md) in this folder lists the ten
 differences from the original code and why we made each one). The table below gives
 evaluation-half accuracy (%, test data, one fine-tuning seed; random pruning is the mean and
 standard deviation over five seeds).

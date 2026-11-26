@@ -86,13 +86,13 @@ Two points of fairness matter here:
 
 ## Evidence
 
-**What we ran.** All runs used Conv2Net (two convolutional layers and one FC layer) on CIFAR-100, on one RTX 2080 server, with seed 42 in every pruning row. We kept the authors' fork results unchanged as the reference, in [`original_fork/`](cifar100/pg_project_output/original_fork/README.md).
+**What we ran.** All runs used Conv2Net (two convolutional layers and one FC layer) on CIFAR-100, on one RTX 2080 server, with seed 42 in every pruning row. We kept the authors' fork results unchanged as the reference, in [`original_fork/`](https://github.com/NeuroPulse-Co/ASF-S/blob/main/studies/cifar100-port-audit/cifar100/pg_project_output/original_fork/README.md).
 
-- [Run 01](runs/20260916-0031-intellisense08-EWISPro9900G-run01-conv2net/run.yaml) trained Conv2Net with the unmodified code and computed the first principal gradient (PG1) vectors. These showed the single-sample collapse described below.
-- [Run 02](runs/20260928-1314-intellisense08-EWISPro9900G-run02-conv2net/run.yaml) applied fixes 1 to 3 and ran the full 81-point ASF-S threshold grid, reusing run 01's checkpoint.
-- [Run 03](runs/20260929-1207-intellisense08-EWISPro9900G-run03-baselines/run.yaml) re-ran the baselines (HRank, SVD, network slimming and SNOWS) on the same checkpoint and the same fixed code.
+- [Run 01](https://github.com/NeuroPulse-Co/ASF-S/blob/main/studies/cifar100-port-audit/runs/20260916-0031-intellisense08-EWISPro9900G-run01-conv2net/run.yaml) trained Conv2Net with the unmodified code and computed the first principal gradient (PG1) vectors. These showed the single-sample collapse described below.
+- [Run 02](https://github.com/NeuroPulse-Co/ASF-S/blob/main/studies/cifar100-port-audit/runs/20260928-1314-intellisense08-EWISPro9900G-run02-conv2net/run.yaml) applied fixes 1 to 3 and ran the full 81-point ASF-S threshold grid, reusing run 01's checkpoint.
+- [Run 03](https://github.com/NeuroPulse-Co/ASF-S/blob/main/studies/cifar100-port-audit/runs/20260929-1207-intellisense08-EWISPro9900G-run03-baselines/run.yaml) re-ran the baselines (HRank, SVD, network slimming and SNOWS) on the same checkpoint and the same fixed code.
 
-**The code audit.** We found fifteen issues in total. The table below lists the ones that change what a number means. The full list, with file and line references, is in [`LOG.md`](LOG.md) and [`docs/cifar100-status.md`](docs/cifar100-status.md#other-findings).
+**The code audit.** We found fifteen issues in total. The table below lists the ones that change what a number means. The full list, with file and line references, is in [`LOG.md`](https://github.com/NeuroPulse-Co/ASF-S/blob/main/studies/cifar100-port-audit/LOG.md) and [`docs/cifar100-status.md`](https://github.com/NeuroPulse-Co/ASF-S/blob/main/studies/cifar100-port-audit/docs/cifar100-status.md#other-findings).
 
 | # | Problem | Effect on results | What we did |
 |---|---|---|---|

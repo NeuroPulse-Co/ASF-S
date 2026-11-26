@@ -23,6 +23,7 @@ that has PyYAML installed.
 from __future__ import annotations
 
 import argparse
+import csv
 import datetime as dt
 import difflib
 import getpass
@@ -43,7 +44,7 @@ except ImportError:  # pragma: no cover
     sys.exit("record.py needs PyYAML. Run it as `uv run tools/record.py ...` "
              "or install it with `pip install pyyaml`.")
 
-VERSION = "1.0.0"
+VERSION = "1.1.0"
 ORG = "NeuroPulse-Co"
 RAW_BASE = f"https://raw.githubusercontent.com/{ORG}/.github/main"
 ADOPTION_DATE = dt.date(2026, 11, 25)   # LOG entries from this date on must use the new header
@@ -57,6 +58,7 @@ SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 TAG_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]*$")
 RUN_ID_RE = re.compile(r"^\d{8}-\d{4}-[A-Za-z0-9-]+-[A-Za-z0-9_.-]+$")
 LOG_HEAD_RE = re.compile(r"^# (\d{4}-\d{2}-\d{2})(?: (\d{2}:\d{2}))? — (.+)$")
+LINK_RE = re.compile(r"(?<!!)\[([^\]]*)\]\(([^)\s#]+)(#[^)\s]*)?\)")
 IMG_RE = re.compile(r"!\[[^\]]*\]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)")
 PLACEHOLDER_RE = re.compile(r"TODO|<headline|<one sentence")
 HARVEST_EXT = ["*.yaml", "*.yml", "*.csv", "*.json", "*.jsonl", "*.png", "*.svg", "*.md",
@@ -70,6 +72,14 @@ RUN_REQUIRED = ["id", "study", "author", "host", "started", "finished", "exit_co
                 "commit", "dirty", "command", "seed", "backfilled", "outputs_dir"]
 POST_REQUIRED = ["title", "date", "authors", "workstream", "summary"]
 PAGE_REQUIRED = ["id", "repo", "title", "workstream", "status", "owner", "summary"]
+
+# evidence: the diagrams, charts, tables and figures shown on a study page (RECORDS.md §Evidence)
+EVIDENCE_TYPES = ["diagram", "chart", "table", "figure"]
+CHART_KINDS = ["dots", "bars"]
+EVIDENCE_MAX_ROWS = 200
+IMAGE_EXT = {".png", ".svg", ".jpg", ".jpeg", ".webp"}
+DIAGRAM_SUFFIX = ".excalidraw.svg"   # an SVG with the Excalidraw scene embedded (standards/DIAGRAMS.md)
+DIAGRAM_PAYLOAD = "payload-type:application/vnd.excalidraw+json"
 
 
 # --------------------------------------------------------------------------- helpers
@@ -231,6 +241,24 @@ code: []                   # paths (relative to the repo root) of the code this 
 # key_results:
 #   - {{label: "...", value: 0.0, unit: "accuracy points", split: val, n_seeds: 3, std: 0.0,
 #       compare: {{label: "paper", value: 0.0}}}}
+# Diagrams, charts, tables and figures for the study page, in reading order (RECORDS.md, Evidence):
+# evidence:
+#   - type: diagram          # an Excalidraw drawing with its scene embedded (standards/DIAGRAMS.md)
+#     source: diagrams/method.excalidraw.svg
+#     title: "How the study works"
+#     caption: >-
+#       What to look at, and what it means.
+#   - type: chart            # one dot per CSV row (one row per seed), mean and spread per group
+#     source: runs/<run-id>/results.csv
+#     filter: {{scope: paper}}
+#     x: method
+#     y: d_acc
+#     y_label: "Change in accuracy (percentage points)"
+#     split: val
+#     reference: {{label: "paper", value: 0.0}}
+#     title: "..."
+#     caption: >-
+#       What to look at, and what it means.
 """
 
 LOG_PREAMBLE = """\
@@ -488,19 +516,19 @@ class Report:
         self.warnings.append(self._fmt(path, field, msg))
 
 
-def _need(rep, path, d, keys):
+def _need(rep, path, d, keys, prefix=""):
     for k in keys:
         if k not in d:
-            rep.err(path, k, "missing (required)")
+            rep.err(path, prefix + k, "missing (required)")
         elif d[k] in ("", []) :
-            rep.err(path, k, "is empty")
+            rep.err(path, prefix + k, "is empty")
 
 
-def _placeholder(rep, path, d, keys, strict_err=True):
+def _placeholder(rep, path, d, keys, strict_err=True, prefix=""):
     for k in keys:
         v = d.get(k)
         if isinstance(v, str) and PLACEHOLDER_RE.search(v):
-            (rep.err if strict_err else rep.warn)(path, k, "still contains a TODO placeholder")
+            (rep.err if strict_err else rep.warn)(path, prefix + k, "still contains a TODO placeholder")
 
 
 def check_people(ctx, rep, path, field, names):
@@ -530,6 +558,102 @@ def check_key_results(rep, path, krs):
         c = kr.get("compare")
         if c is not None and not (isinstance(c, dict) and "label" in c and "value" in c):
             rep.err(path, f + ".compare", "must have label and value")
+
+
+def read_csv_rows(path: Path):
+    with path.open(newline="", encoding="utf-8") as fh:
+        reader = csv.DictReader(fh)
+        return list(reader.fieldnames or []), list(reader)
+
+
+def cell(v):
+    """CSV text to a number when it is one; empty cells become None."""
+    if v is None or v == "":
+        return None
+    try:
+        return int(v)
+    except ValueError:
+        pass
+    try:
+        return float(v)
+    except ValueError:
+        return v
+
+
+def row_matches(row, flt):
+    for col, want in (flt or {}).items():
+        wants = want if isinstance(want, list) else [want]
+        if str(row.get(col)) not in {str(w) for w in wants}:
+            return False
+    return True
+
+
+def check_evidence(rep, path, sdir: Path, items):
+    if not isinstance(items, list):
+        rep.err(path, "evidence", "must be a list")
+        return
+    for i, ev in enumerate(items):
+        f = f"evidence[{i}]"
+        if not isinstance(ev, dict):
+            rep.err(path, f, "must be a mapping")
+            continue
+        _need(rep, path, ev, ["type", "source", "title", "caption"], f + ".")
+        t = ev.get("type")
+        if t not in EVIDENCE_TYPES:
+            rep.err(path, f + ".type", f"'{t}' must be one of {EVIDENCE_TYPES}")
+            continue
+        _placeholder(rep, path, ev, ["title", "caption"], prefix=f + ".")
+        src = sdir / str(ev.get("source", ""))
+        if not ev.get("source") or not src.is_file():
+            rep.err(path, f + ".source", f"'{ev.get('source')}' is not a file in the study folder")
+            continue
+        if t == "diagram":
+            if not src.name.endswith(DIAGRAM_SUFFIX):
+                rep.err(path, f + ".source", f"a diagram must be a {DIAGRAM_SUFFIX} file (see DIAGRAMS.md)")
+            elif DIAGRAM_PAYLOAD not in src.read_text(encoding="utf-8", errors="replace"):
+                rep.err(path, f + ".source", "has no embedded Excalidraw scene, so nobody can edit it; "
+                        "export it with `node tools/export-diagrams.mjs` or with \"Embed scene\" on")
+        elif t == "figure":
+            if src.suffix.lower() not in IMAGE_EXT:
+                rep.err(path, f + ".source", f"must be an image ({', '.join(sorted(IMAGE_EXT))})")
+        else:
+            if src.suffix.lower() != ".csv":
+                rep.err(path, f + ".source", "must be a .csv file")
+                continue
+            if ev.get("split") not in SPLITS:
+                rep.err(path, f + ".split", f"must be one of {SPLITS} (say which data the numbers are from)")
+            if "filter" in ev and not isinstance(ev["filter"], dict):
+                rep.err(path, f + ".filter", "must be a mapping {column: value or [values]}")
+                continue
+            header, rows = read_csv_rows(src)
+            if t == "chart":
+                _need(rep, path, ev, ["x", "y", "y_label"], f + ".")
+                if ev.get("kind", "dots") not in CHART_KINDS:
+                    rep.err(path, f + ".kind", f"must be one of {CHART_KINDS}")
+                cols = [ev.get("x"), ev.get("y")] + ([ev["series"]] if ev.get("series") else [])
+                r = ev.get("reference")
+                if r is not None and not (isinstance(r, dict) and "label" in r
+                                          and isinstance(r.get("value"), (int, float))):
+                    rep.err(path, f + ".reference", "must have label and a numeric value")
+            else:
+                c = ev.get("columns")
+                if not isinstance(c, dict) or not c:
+                    rep.err(path, f + ".columns", "must map CSV columns to display labels")
+                    continue
+                cols = list(c)
+            want = list(cols) + list((ev.get("filter") or {}).keys())
+            missing = [col for col in want if col and col not in header]
+            if missing:
+                rep.err(path, f, f"columns {missing} are not in {ev['source']}")
+                continue
+            kept = [r for r in rows if row_matches(r, ev.get("filter"))]
+            if not kept:
+                rep.err(path, f + ".filter", "keeps no rows")
+            elif len(kept) > EVIDENCE_MAX_ROWS:
+                rep.err(path, f + ".filter", f"keeps {len(kept)} rows; the limit is {EVIDENCE_MAX_ROWS}")
+            if t == "chart" and any(not isinstance(cell(r.get(ev.get("y"))), (int, float))
+                                    for r in kept):
+                rep.err(path, f + ".y", f"column '{ev.get('y')}' has non-numeric values in the kept rows")
 
 
 def check_study(ctx, rep, sdir: Path):
@@ -577,6 +701,8 @@ def check_study(ctx, rep, sdir: Path):
                 rep.err(sdir / "FINDINGS.md", "", "a closed study needs FINDINGS.md")
     if "key_results" in s:
         check_key_results(rep, f, s["key_results"])
+    if "evidence" in s:
+        check_evidence(rep, f, sdir, s["evidence"])
     if st != "planned":
         _placeholder(rep, f, s, ["summary", "question", "hypothesis", "success_criterion", "verdict"])
     else:
@@ -723,7 +849,8 @@ def check_showcase(ctx, rep):
     mf = sc / "manifest.yaml"
     if not mf.exists():
         rep.err(mf, "", "missing; run `record.py promote <study>` to generate it")
-    elif (load_yaml(mf) or {}) != build_manifest(ctx):
+    elif {k: v for k, v in (load_yaml(mf) or {}).items() if k != "generated_by"} != \
+            {k: v for k, v in build_manifest(ctx).items() if k != "generated_by"}:
         rep.err(mf, "", "out of date with showcase/; run `record.py promote <study>` "
                         "(or `record.py check --fix-manifest`)")
 
@@ -802,6 +929,78 @@ def code_url(ctx, path):
     return f"https://github.com/{ORG}/{ctx.repo}/tree/main/{path}"
 
 
+def _slug(text: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "-", str(text).lower()).strip("-")[:48] or "item"
+
+
+def promote_evidence(ctx, sdir: Path, study: str, items):
+    """Copy evidence files into showcase/ and return the page's `evidence` frontmatter.
+
+    Charts and tables carry their (filtered) rows in the frontmatter, so the website can draw
+    them at build time and its schema can validate them; the same rows are also written to
+    showcase/data/<study>/ as a CSV that readers can download."""
+    out, fig_dir, data_dir = [], ctx.showcase / "figures" / study, ctx.showcase / "data" / study
+    for f in (fig_dir, data_dir):
+        if f.exists():
+            for old in f.glob("evidence-*"):
+                old.unlink()
+    for i, ev in enumerate(items, 1):
+        t, src = ev["type"], sdir / ev["source"]
+        item = {"type": t, "title": ev["title"], "caption": " ".join(str(ev["caption"]).split())}
+        name = f"evidence-{i:02d}-{_slug(ev['title'])}"
+        if t in ("diagram", "figure"):
+            fig_dir.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(src, fig_dir / (name + src.suffix.lower()))
+            item["src"] = f"../figures/{study}/{name}{src.suffix.lower()}"
+            item["source_url"] = code_url(ctx, f"studies/{study}/{ev['source']}").replace("/tree/", "/blob/")
+            out.append(item)
+            continue
+        _, rows = read_csv_rows(src)
+        rows = [r for r in rows if row_matches(r, ev.get("filter"))][:EVIDENCE_MAX_ROWS]
+        if t == "chart":
+            cols = [ev["x"]] + ([ev["series"]] if ev.get("series") else []) + [ev["y"]]
+            item.update({"kind": ev.get("kind", "dots"), "x": ev["x"], "y": ev["y"],
+                         "y_label": ev["y_label"], "split": ev["split"]})
+            for k in ("series", "x_label", "reference", "labels"):
+                if ev.get(k) is not None:
+                    item[k] = ev[k]
+        else:
+            cols = list(ev["columns"])
+            item.update({"split": ev["split"],
+                         "columns": [{"key": k, "label": str(v)} for k, v in ev["columns"].items()]})
+        item["rows"] = [{c: cell(r.get(c)) for c in cols} for r in rows]
+        data_dir.mkdir(parents=True, exist_ok=True)
+        with (data_dir / (name + ".csv")).open("w", newline="", encoding="utf-8") as fh:
+            w = csv.writer(fh)
+            w.writerow(cols)
+            w.writerows([[r.get(c, "") for c in cols] for r in rows])
+        item["data"] = f"../data/{study}/{name}.csv"
+        item["source_url"] = code_url(ctx, f"studies/{study}/{ev['source']}").replace("/tree/", "/blob/")
+        out.append(item)
+    return out
+
+
+def promote_runs(ctx, sdir: Path, study: str):
+    """One line per recorded run, for the runs table on the study page (also as runs.csv)."""
+    runs = []
+    rdir = sdir / "runs"
+    for p in sorted(rdir.glob("*/run.yaml")) if rdir.exists() else []:
+        r = load_yaml(p) or {}
+        runs.append({"id": str(r.get("id", p.parent.name)), "started": str(r.get("started") or ""),
+                     "host": str(r.get("host") or ""), "seed": r.get("seed"),
+                     "commit": str(r.get("commit") or "")[:10], "exit_code": r.get("exit_code"),
+                     "backfilled": bool(r.get("backfilled"))})
+    runs.sort(key=lambda r: r["id"])
+    if runs:
+        d = ctx.showcase / "data" / study
+        d.mkdir(parents=True, exist_ok=True)
+        with (d / "runs.csv").open("w", newline="", encoding="utf-8") as fh:
+            w = csv.DictWriter(fh, fieldnames=list(runs[0]))
+            w.writeheader()
+            w.writerows(runs)
+    return runs
+
+
 def cmd_promote(ctx: Ctx, a):
     s = ctx.require_study(a.study)
     rep = Report(ctx.root)
@@ -829,12 +1028,30 @@ def cmd_promote(ctx: Ctx, a):
         return m.group(0).replace(target, f"../figures/{a.study}/{name}")
 
     body = IMG_RE.sub(relink, body)
+
+    def repo_link(m):
+        # Plain links to files in the study folder (LOG.md, runs/..., docs/...) point into the
+        # repository on GitHub, because the website only publishes showcase/.
+        text, target, frag = m.group(1), m.group(2), m.group(3) or ""
+        if re.match(r"^[a-z]+:", target) or target.startswith(("/", "#", "../figures/")):
+            return m.group(0)
+        src = (sdir / target)
+        if not src.exists():
+            return m.group(0)
+        rel = src.resolve().relative_to(ctx.root.resolve()).as_posix()
+        kind = "tree" if src.is_dir() else "blob"
+        return f"[{text}](https://github.com/{ORG}/{ctx.repo}/{kind}/main/{rel}{frag})"
+
+    body = LINK_RE.sub(repo_link, body)
+    evidence = promote_evidence(ctx, sdir, a.study, s.get("evidence") or [])
+    runs = promote_runs(ctx, sdir, a.study)
     fm = {"id": s["id"], "repo": ctx.repo, "title": s["title"], "workstream": s["workstream"],
           "status": s["status"], "owner": s["owner"], "started": str(as_date(s["started"])),
           "closed": str(as_date(s["closed"])) if s.get("closed") else None,
           "summary": s["summary"], "question": s["question"], "hypothesis": s["hypothesis"],
           "success_criterion": s["success_criterion"], "criterion": s["criterion"],
           "verdict": s.get("verdict"), "key_results": s.get("key_results"),
+          "evidence": evidence or None, "runs": runs or None,
           "code_url": code_url(ctx, f"studies/{a.study}")}
     fm = {k: v for k, v in fm.items() if v is not None}
     page = ctx.showcase / "studies" / f"{a.study}.md"
@@ -864,6 +1081,7 @@ def cmd_promote(ctx: Ctx, a):
 
 def cmd_self_update(ctx: Ctx, a):
     targets = {"tools/record.py": Path(__file__).resolve(),
+               "tools/export-diagrams.mjs": Path(__file__).resolve().parent / "export-diagrams.mjs",
                "standards/workstreams.yaml": ctx.root / "tools" / "standards" / "workstreams.yaml",
                "standards/people.yaml": ctx.root / "tools" / "standards" / "people.yaml"}
     for remote, local in targets.items():
